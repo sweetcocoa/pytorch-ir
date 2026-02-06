@@ -137,8 +137,7 @@ def validate_ir(ir: NPU_IR) -> bool:
 
     if errors:
         raise SerializationError(
-            f"IR validation failed with {len(errors)} errors:\n"
-            + "\n".join(f"  - {e}" for e in errors)
+            f"IR validation failed with {len(errors)} errors:\n" + "\n".join(f"  - {e}" for e in errors)
         )
 
     return True

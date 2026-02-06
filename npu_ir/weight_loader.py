@@ -74,8 +74,7 @@ def load_weights_safetensors(path: Union[str, Path]) -> Dict[str, torch.Tensor]:
         from safetensors.torch import load_file
     except ImportError:
         raise ImportError(
-            "safetensors package is required for loading .safetensors files.\n"
-            "Install it with: pip install safetensors"
+            "safetensors package is required for loading .safetensors files.\nInstall it with: pip install safetensors"
         )
 
     path = Path(path)
@@ -113,8 +112,7 @@ def load_weights(path: Union[str, Path]) -> Dict[str, torch.Tensor]:
             return load_weights_pt(path)
         except Exception:
             raise WeightLoadError(
-                f"Unknown weight file format: {path.suffix}\n"
-                "Supported formats: .pt, .pth, .bin, .safetensors"
+                f"Unknown weight file format: {path.suffix}\nSupported formats: .pt, .pth, .bin, .safetensors"
             )
 
 
@@ -151,16 +149,12 @@ def validate_weights_against_ir(
         actual_shape = tuple(loaded_tensor.shape)
 
         if expected_shape != actual_shape:
-            errors.append(
-                f"Shape mismatch for '{weight_meta.name}': "
-                f"expected {expected_shape}, got {actual_shape}"
-            )
+            errors.append(f"Shape mismatch for '{weight_meta.name}': expected {expected_shape}, got {actual_shape}")
 
         expected_dtype = _dtype_str_to_torch(weight_meta.dtype)
         if loaded_tensor.dtype != expected_dtype:
             errors.append(
-                f"Dtype mismatch for '{weight_meta.name}': "
-                f"expected {expected_dtype}, got {loaded_tensor.dtype}"
+                f"Dtype mismatch for '{weight_meta.name}': expected {expected_dtype}, got {loaded_tensor.dtype}"
             )
 
     return errors
@@ -199,10 +193,7 @@ class WeightLoader:
         if self.validate and ir is not None:
             errors = validate_weights_against_ir(weights, ir)
             if errors:
-                raise WeightLoadError(
-                    "Weight validation failed:\n"
-                    + "\n".join(f"  - {e}" for e in errors)
-                )
+                raise WeightLoadError("Weight validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
         return weights
 
@@ -226,9 +217,6 @@ class WeightLoader:
         if self.validate and ir is not None:
             errors = validate_weights_against_ir(state_dict, ir)
             if errors:
-                raise WeightLoadError(
-                    "Weight validation failed:\n"
-                    + "\n".join(f"  - {e}" for e in errors)
-                )
+                raise WeightLoadError("Weight validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
 
         return state_dict

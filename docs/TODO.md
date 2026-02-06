@@ -33,17 +33,10 @@
 - [x] Input/output TensorMeta generation
 - [x] attrs extraction (kernel_size, stride, etc.)
 
-### 2.2 Operator Mappings (`npu_ir/ops/`)
-- [x] registry.py: Operator registration mechanism
-- [x] aten_ops.py: Basic ATen operator mappings
-  - [x] conv2d, linear
-  - [x] relu, gelu, silu
-  - [x] batch_norm, layer_norm
-  - [x] add, mul, matmul
-  - [x] softmax, attention related
-  - [x] pooling operations
-  - [x] shape operations (view, reshape, permute)
-  - [x] reduction operations (mean, sum, max)
+### 2.2 Operator Handling (`npu_ir/ops/`)
+- [x] registry.py: Custom operator registration mechanism
+- [x] aten_ops.py: Op type string normalization utilities
+- [x] All ATen ops auto-handled by `_default_conversion()` + `_aten_fallback()`
 
 ### 2.3 Serializer (`npu_ir/serializer.py`)
 - [x] NPU_IR → JSON conversion
@@ -60,14 +53,16 @@
 - [x] .safetensors file loading (optional)
 - [x] IR.weights matching validation
 
-### 3.2 ATen Operator Execution (`npu_ir/ops/aten_impl.py`)
-- [x] Execution function implementation for each ATen op
-- [x] torch.ops.aten.* call wrapper
-- [x] Input/output tensor management
+### 3.2 ATen Operator Execution (`npu_ir/executor.py`)
+- [x] Schema-based ATen fallback (`_aten_fallback`) — auto-executes all ATen ops
+- [x] Handles Tensor[], Tensor?[], Optional[Tensor], kwarg_only, scalar args
+- [x] Device meta→cpu sanitization for tensor creation ops
+- [x] `_tensor_list_sizes` / `_tensor_list_none_masks` for correct list reconstruction
+- [x] Non-ATen op executor: getitem only (`npu_ir/ops/aten_impl.py`)
 
 ### 3.3 IR Executor (`npu_ir/executor.py`)
 - [x] IR graph traversal
-- [x] Tensor registry (name → tensor)
+- [x] Tensor registry (name → tensor) + producer-based output_map
 - [x] Per-node execution and result storage
 - [x] Final output return
 
@@ -82,12 +77,13 @@
 ## Phase 4: Extension and Completion
 
 ### 4.1 Custom Op Extension
-- [x] @register_op decorator implementation
-- [x] Unsupported op fallback handling
+- [x] @register_op / @register_executor decorator for custom non-ATen ops
+- [x] ATen fallback handles all standard ops without registration
 
 ### 4.2 Error Handling
 - [x] Clear error messages
-- [x] Unsupported pattern detection and guidance
+- [x] Dynamic shape detection and blocking (`_validate_static_shapes`)
+- [x] Meta-device lifted constant detection
 
 ### 4.3 Tests
 - [x] test_exporter.py: export operation tests

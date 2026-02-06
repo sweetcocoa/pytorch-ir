@@ -17,6 +17,7 @@ class TestModelSpec:
         categories: List of categories this model belongs to.
         description: Human-readable description of the model.
     """
+
     name: str
     model_class: Callable[[], nn.Module]
     input_shapes: List[Tuple[int, ...]]
@@ -55,6 +56,7 @@ def register_model(
         class SelfAttention(nn.Module):
             ...
     """
+
     def decorator(cls):
         spec = TestModelSpec(
             name=name,
@@ -65,6 +67,7 @@ def register_model(
         )
         MODEL_REGISTRY[name] = spec
         return cls
+
     return decorator
 
 

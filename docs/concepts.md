@@ -171,15 +171,15 @@ class NPU_IR:
 | 컴포넌트 | 파일 | 역할 |
 |---------|------|------|
 | Exporter | `exporter.py` | torch.export 래핑, meta device 검증 |
-| Analyzer | `analyzer.py` | FX 그래프 분석, 메타데이터 추출 |
-| Converter | `converter.py` | FX node → OpNode 변환 |
+| Analyzer | `analyzer.py` | FX 그래프 분석, 메타데이터 추출, schema 기반 속성 추출 |
+| Converter | `converter.py` | FX node → OpNode 변환 (기본 변환기로 모든 op 처리) |
 | Serializer | `serializer.py` | JSON 직렬화/역직렬화 |
-| Executor | `executor.py` | IR 그래프 실행 (검증용) |
+| Executor | `executor.py` | IR 그래프 실행 — ATen fallback으로 모든 ATen op 자동 실행 |
 | Weight Loader | `weight_loader.py` | .pt, .safetensors 파일 로드 |
 | Verifier | `verifier.py` | 원본 vs IR 출력 비교 |
-| Registry | `ops/registry.py` | 연산자 등록 메커니즘 |
-| ATen Ops | `ops/aten_ops.py` | ATen 연산자 IR 변환 |
-| ATen Impl | `ops/aten_impl.py` | ATen 연산자 실행 구현 |
+| Registry | `ops/registry.py` | 커스텀 연산자 등록 메커니즘 |
+| ATen Ops | `ops/aten_ops.py` | op 타입 문자열 정규화 유틸리티 |
+| ATen Impl | `ops/aten_impl.py` | non-ATen op 실행 (getitem만 해당) |
 
 ## 4. 설계 결정
 
@@ -198,20 +198,24 @@ torch.export는 기본적으로 ATen 레벨로 분해합니다. 이는 다음과
 # - aten.addmm.default (bias 있는 경우)
 ```
 
-### 4.2 연산자 레지스트리
+### 4.2 Schema 기반 ATen Fallback
 
-확장 가능한 연산자 시스템:
+모든 ATen op은 PyTorch의 op schema를 자동으로 참조하여 실행됩니다:
+
+1. **IR 변환**: `_default_conversion()`이 모든 op을 `OpNode`로 변환 (커스텀 변환 불필요)
+2. **실행**: `_aten_fallback()`이 `torch.ops.aten.*`을 직접 호출 (schema 기반 인자 재구성)
+
+이 설계 덕분에 새로운 ATen op이 추가되어도 프레임워크 코드 변경 없이 자동 지원됩니다.
+
+### 4.3 커스텀 연산자 레지스트리
+
+non-ATen op이나 특수한 변환/실행이 필요한 경우에만 수동 등록합니다:
 
 ```python
-from npu_ir.ops import register_op, register_executor
+from npu_ir.ops import register_executor
 
-# IR 변환 등록
-@register_op("aten.my_custom_op")
-def convert_my_op(node_info):
-    return OpNode(...)
-
-# 실행 함수 등록
-@register_executor("aten.my_custom_op")
+# non-ATen op의 실행 함수 등록
+@register_executor("my_custom_op")
 def execute_my_op(inputs, attrs):
     return [result_tensor]
 ```
@@ -228,12 +232,15 @@ torch.export는 파라미터에 `p_` prefix를 사용합니다:
 
 ### 5.1 지원하지 않는 패턴
 
+- **Dynamic shapes**: `SymInt` 차원이 포함된 모델 (정적 shape만 지원)
 - **Dynamic control flow**: 데이터 의존적 if/for문
 - **일부 custom autograd function**
 - **복잡한 Python 동작**: list comprehension, 동적 attribute 등
+- **Meta device 상수**: `forward()`에서 `torch.tensor(...)`로 생성한 상수 (meta device에서 데이터 없음)
 
 ### 5.2 권장 사항
 
 1. 모델은 반드시 `eval()` 모드로 설정
 2. 입력 모델과 example inputs 모두 meta device 사용
 3. 검증 시 동일한 입력으로 테스트
+4. `forward()`에서 텐서 상수 생성 대신 `self.register_buffer()` 사용

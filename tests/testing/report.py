@@ -24,6 +24,7 @@ class TestResult:
         error_message: Error message (if failed).
         duration_seconds: Test duration in seconds.
     """
+
     model_name: str
     passed: bool
     ir: Optional[NPU_IR] = None

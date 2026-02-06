@@ -126,11 +126,11 @@ my_compiler/
 │   ├── executor.py      # IR 실행기
 │   ├── weight_loader.py # Weight 로더
 │   ├── verifier.py      # 검증기
-│   └── ops/             # 연산자 구현
+│   └── ops/             # 연산자 레지스트리 및 유틸리티
 │       ├── __init__.py
-│       ├── registry.py  # 연산자 레지스트리
-│       ├── aten_ops.py  # ATen op 변환
-│       └── aten_impl.py # ATen op 실행
+│       ├── registry.py  # 커스텀 연산자 등록 메커니즘
+│       ├── aten_ops.py  # op 타입 문자열 정규화 유틸리티
+│       └── aten_impl.py # non-ATen op 실행 (getitem)
 ├── tests/               # 테스트 코드
 │   ├── test_exporter.py
 │   ├── test_analyzer.py

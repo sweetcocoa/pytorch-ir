@@ -43,9 +43,7 @@ def _dtype_to_str(dtype: torch.dtype) -> str:
     return dtype_map.get(dtype, str(dtype).replace("torch.", ""))
 
 
-def _extract_tensor_meta(
-    value: Any, name_prefix: str, index: int = 0
-) -> List[TensorMeta]:
+def _extract_tensor_meta(value: Any, name_prefix: str, index: int = 0) -> List[TensorMeta]:
     """Extract TensorMeta from a value (tensor or tuple of tensors)."""
     metas = []
 
@@ -114,34 +112,38 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
             attrs["index"] = node.args[1]
         return attrs
 
-    # Special case: aten.index.Tensor — record which dims have None indices
-    target_str = str(target)
-    if "aten.index" in target_str and len(node.args) >= 2:
-        index_arg = node.args[1]
-        if isinstance(index_arg, (list, tuple)):
-            # Record the pattern: True = has index tensor, False = None (slice all)
-            none_mask = [a is None for a in index_arg]
-            attrs["index_none_mask"] = none_mask
-
     if not hasattr(target, "_schema"):
         return attrs
 
     schema = target._schema
 
-    # Record sizes of Tensor[] args so executor can re-group flat tensor list
+    # Record sizes of Tensor[] and Tensor?[] args so executor can re-group flat tensor list
     tensor_list_sizes = []
+    tensor_list_none_masks = []
     for i, schema_arg in enumerate(schema.arguments):
         if i >= len(node.args):
             break
         value = node.args[i]
         arg_type_str = str(schema_arg.type)
-        if ("Tensor[]" in arg_type_str or "List[Tensor]" in arg_type_str) and isinstance(
-            value, (list, tuple)
-        ):
-            tensor_list_sizes.append(len(value))
+        is_tensor_list = (
+            "Tensor[]" in arg_type_str
+            or "Tensor?[]" in arg_type_str
+            or "List[Tensor]" in arg_type_str
+            or "List[Optional[Tensor]]" in arg_type_str
+        )
+        if is_tensor_list and isinstance(value, (list, tuple)):
+            # Count only actual tensors (non-None entries)
+            actual_tensor_count = sum(1 for v in value if v is not None)
+            tensor_list_sizes.append(actual_tensor_count)
+            # Record None positions for Tensor?[] reconstruction
+            none_mask = [v is None for v in value]
+            if any(none_mask):
+                tensor_list_none_masks.append(none_mask)
 
     if tensor_list_sizes:
         attrs["_tensor_list_sizes"] = tensor_list_sizes
+    if tensor_list_none_masks:
+        attrs["_tensor_list_none_masks"] = tensor_list_none_masks
 
     for i, schema_arg in enumerate(schema.arguments):
         if i >= len(node.args):
@@ -204,26 +206,30 @@ class GraphAnalyzer:
                 metas = self._node_outputs.get(arg.name, [])
                 is_weight = arg.name in weight_placeholders
                 for output_idx, meta in enumerate(metas):
-                    input_metas.append(TensorMeta(
-                        name=meta.name,
-                        shape=meta.shape,
-                        dtype=meta.dtype,
-                        producer_node=None if is_weight else arg.name,
-                        producer_output_idx=0 if is_weight else output_idx,
-                    ))
+                    input_metas.append(
+                        TensorMeta(
+                            name=meta.name,
+                            shape=meta.shape,
+                            dtype=meta.dtype,
+                            producer_node=None if is_weight else arg.name,
+                            producer_output_idx=0 if is_weight else output_idx,
+                        )
+                    )
             elif isinstance(arg, (list, tuple)):
                 for a in arg:
                     if isinstance(a, Node):
                         metas = self._node_outputs.get(a.name, [])
                         is_weight = a.name in weight_placeholders
                         for output_idx, meta in enumerate(metas):
-                            input_metas.append(TensorMeta(
-                                name=meta.name,
-                                shape=meta.shape,
-                                dtype=meta.dtype,
-                                producer_node=None if is_weight else a.name,
-                                producer_output_idx=0 if is_weight else output_idx,
-                            ))
+                            input_metas.append(
+                                TensorMeta(
+                                    name=meta.name,
+                                    shape=meta.shape,
+                                    dtype=meta.dtype,
+                                    producer_node=None if is_weight else a.name,
+                                    producer_output_idx=0 if is_weight else output_idx,
+                                )
+                            )
         return input_metas
 
     def get_graph_inputs(self) -> List[TensorMeta]:
@@ -260,7 +266,11 @@ class GraphAnalyzer:
         # Get parameter names from signature
         params_dict = dict(self.graph_signature.inputs_to_parameters)
         buffers_dict = dict(self.graph_signature.inputs_to_buffers)
-        constants_dict = dict(self.graph_signature.inputs_to_lifted_tensor_constants) if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants") else {}
+        constants_dict = (
+            dict(self.graph_signature.inputs_to_lifted_tensor_constants)
+            if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants")
+            else {}
+        )
 
         for node in self.graph.nodes:
             if node.op == "placeholder":
@@ -294,7 +304,11 @@ class GraphAnalyzer:
 
         params_dict = dict(self.graph_signature.inputs_to_parameters)
         buffers_dict = dict(self.graph_signature.inputs_to_buffers)
-        constants_dict = dict(self.graph_signature.inputs_to_lifted_tensor_constants) if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants") else {}
+        constants_dict = (
+            dict(self.graph_signature.inputs_to_lifted_tensor_constants)
+            if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants")
+            else {}
+        )
 
         for node in self.graph.nodes:
             if node.op == "placeholder":

@@ -112,7 +112,7 @@ def ir_to_mermaid(ir: NPU_IR, max_nodes: int = 30) -> str:
         # Find producer for this output
         producer = tensor_to_producer.get(out.name)
         if producer:
-            lines.append(f'    {producer} --> output_{i}')
+            lines.append(f"    {producer} --> output_{i}")
 
     # Add truncation note if needed
     if truncated:

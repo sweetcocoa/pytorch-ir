@@ -347,12 +347,17 @@ else:
 ### 7.1 Strict 모드
 
 ```python
-# Strict 모드: 미지원 연산자 발견 시 오류 발생
+# Strict 모드: 변환 중 오류 발생 시 예외 발생
 try:
     ir = extract_ir(model, inputs, strict=True)
 except Exception as e:
-    print(f"Unsupported operation: {e}")
+    print(f"Conversion error: {e}")
+
+# Non-strict (기본): 변환 오류 시 기본 변환기로 대체
+ir = extract_ir(model, inputs, strict=False)
 ```
+
+> 모든 ATen 연산자는 자동으로 지원되므로 `strict=False`로도 대부분의 모델이 정상 동작합니다.
 
 ### 7.2 커스텀 모델 이름
 

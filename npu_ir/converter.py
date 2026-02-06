@@ -1,6 +1,5 @@
 """IR Builder/Converter - converts ExportedProgram to NPU_IR."""
 
-
 import torch
 from torch.export import ExportedProgram
 
@@ -112,9 +111,7 @@ def convert_exported_program(
         except Exception as e:
             if strict:
                 op_type = get_op_type(node_info.target)
-                raise ConversionError(
-                    f"Failed to convert node '{node_info.name}' with op '{op_type}': {e}"
-                ) from e
+                raise ConversionError(f"Failed to convert node '{node_info.name}' with op '{op_type}': {e}") from e
             else:
                 # Use default conversion as fallback
                 op_node = _default_conversion(node_info)

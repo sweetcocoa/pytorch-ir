@@ -79,10 +79,7 @@ def _get_input_tensors(
         else:
             # Weight or graph input (no producer node)
             if input_meta.name not in registry:
-                raise ExecutionError(
-                    f"Weight/input '{input_meta.name}' not found in registry "
-                    f"for node '{node.name}'."
-                )
+                raise ExecutionError(f"Weight/input '{input_meta.name}' not found in registry for node '{node.name}'.")
             tensors.append(registry[input_meta.name])
     return tensors
 
@@ -115,17 +112,18 @@ def _is_tensor_type(arg_type_str: str) -> bool:
 
 
 def _is_tensor_list_type(arg_type_str: str) -> bool:
-    """Check if a schema arg type is Tensor[]."""
-    return "Tensor[]" in arg_type_str or "List[Tensor]" in arg_type_str
+    """Check if a schema arg type is a list of tensors (Tensor[], Tensor?[], List[Optional[Tensor]])."""
+    return (
+        "Tensor[]" in arg_type_str
+        or "Tensor?[]" in arg_type_str
+        or "List[Tensor]" in arg_type_str
+        or "List[Optional[Tensor]]" in arg_type_str
+    )
 
 
 def _is_optional_tensor_type(arg_type_str: str) -> bool:
     """Check if a schema arg type is an optional Tensor."""
-    return (
-        "Tensor?" in arg_type_str
-        or "Tensor(a)?" in arg_type_str
-        or "Optional[Tensor]" in arg_type_str
-    )
+    return "Tensor?" in arg_type_str or "Tensor(a)?" in arg_type_str or "Optional[Tensor]" in arg_type_str
 
 
 def _sanitize_attr_value(name: str, value):
@@ -142,10 +140,7 @@ def _aten_fallback(
     """Fallback: call the original ATen op directly via torch.ops.aten."""
     aten_fn = _resolve_aten_op(node.op_type)
     if aten_fn is None:
-        raise ExecutionError(
-            f"No execution function registered for op_type '{node.op_type}'\n"
-            f"Node: {node.name}"
-        )
+        raise ExecutionError(f"No execution function registered for op_type '{node.op_type}'\nNode: {node.name}")
 
     # Build args from schema, mapping flat tensor inputs + attrs to correct positions
     args = list(inputs)
@@ -158,7 +153,9 @@ def _aten_fallback(
 
         # Use exact list sizes from analyzer if available
         tensor_list_sizes = node.attrs.get("_tensor_list_sizes", None)
+        tensor_list_none_masks = node.attrs.get("_tensor_list_none_masks", None)
         list_size_idx = 0
+        none_mask_idx = 0
 
         # Count single-Tensor and Tensor[] args for fallback fair-split
         single_tensor_count = 0
@@ -193,7 +190,20 @@ def _aten_fallback(
                     size = remaining_for_lists // tensor_list_count
                 else:
                     size = 0
-                tensor_list = inputs[tensor_idx : tensor_idx + size]
+                tensor_list = list(inputs[tensor_idx : tensor_idx + size])
+                # Reconstruct None positions for Tensor?[] args
+                if tensor_list_none_masks and none_mask_idx < len(tensor_list_none_masks):
+                    none_mask = tensor_list_none_masks[none_mask_idx]
+                    none_mask_idx += 1
+                    full_list = []
+                    t_idx = 0
+                    for is_none in none_mask:
+                        if is_none:
+                            full_list.append(None)
+                        else:
+                            full_list.append(tensor_list[t_idx] if t_idx < len(tensor_list) else None)
+                            t_idx += 1
+                    tensor_list = full_list
                 positional_args.append(tensor_list)
                 tensor_idx += size
                 remaining_for_lists -= size
@@ -252,9 +262,7 @@ def _execute_node(
         try:
             return execution_fn(inputs, node.attrs)
         except Exception as e:
-            raise ExecutionError(
-                f"Failed to execute node '{node.name}' (op: {node.op_type}): {e}"
-            ) from e
+            raise ExecutionError(f"Failed to execute node '{node.name}' (op: {node.op_type}): {e}") from e
 
     # Default: call original ATen op directly
     try:
@@ -262,9 +270,7 @@ def _execute_node(
     except ExecutionError:
         raise
     except Exception as e:
-        raise ExecutionError(
-            f"Failed to execute node '{node.name}' (op: {node.op_type}): {e}"
-        ) from e
+        raise ExecutionError(f"Failed to execute node '{node.name}' (op: {node.op_type}): {e}") from e
 
 
 class IRExecutor:
@@ -325,9 +331,7 @@ class IRExecutor:
 
         # Register graph inputs
         if len(inputs) != len(self.ir.graph_inputs):
-            raise ExecutionError(
-                f"Expected {len(self.ir.graph_inputs)} inputs, got {len(inputs)}"
-            )
+            raise ExecutionError(f"Expected {len(self.ir.graph_inputs)} inputs, got {len(inputs)}")
 
         for input_meta, tensor in zip(self.ir.graph_inputs, inputs):
             self.registry.register(input_meta.name, tensor)
@@ -347,9 +351,7 @@ class IRExecutor:
             ExecutionError: If execution fails.
         """
         if self.weights is None:
-            raise ExecutionError(
-                "Weights not loaded. Call load_weights() or load_weights_from_state_dict() first."
-            )
+            raise ExecutionError("Weights not loaded. Call load_weights() or load_weights_from_state_dict() first.")
 
         self._prepare(inputs)
 
@@ -379,9 +381,7 @@ class IRExecutor:
         outputs = []
         for output_meta in self.ir.graph_outputs:
             if output_meta.name not in self.registry:
-                raise ExecutionError(
-                    f"Graph output '{output_meta.name}' not found in registry"
-                )
+                raise ExecutionError(f"Graph output '{output_meta.name}' not found in registry")
             outputs.append(self.registry[output_meta.name])
 
         return tuple(outputs)

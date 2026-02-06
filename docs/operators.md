@@ -1,294 +1,104 @@
 # 연산자 지원
 
-이 문서는 NPU IR 프레임워크에서 지원하는 ATen 연산자 목록을 설명합니다.
+이 문서는 NPU IR 프레임워크의 연산자 처리 방식을 설명합니다.
 
 ## 1. 개요
 
-프레임워크는 60개 이상의 ATen 연산자를 지원합니다. 각 연산자는 다음 두 가지가 구현되어 있습니다:
+프레임워크는 **모든 ATen 연산자를 자동으로 지원**합니다.
 
-- **IR 변환 (aten_ops.py)**: FX 노드를 OpNode로 변환
-- **실행 (aten_impl.py)**: 실제 텐서 연산 수행
+- **IR 변환**: `_default_conversion()`이 모든 FX 노드를 `OpNode`로 변환
+- **실행**: `_aten_fallback()`이 PyTorch의 op schema를 참조하여 `torch.ops.aten.*`을 직접 호출
 
-지원되지 않는 연산자도 기본 변환기로 처리되므로 IR 추출은 가능하지만, 실행/검증은 실패할 수 있습니다.
+개별 연산자마다 변환 함수나 실행 함수를 구현할 필요가 없습니다. PyTorch가 지원하는 모든 ATen op이 자동으로 동작합니다.
 
-## 2. Convolution 연산
+## 2. ATen Fallback 동작 방식
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.conv1d.default` | ✅ | ✅ | 1D 컨볼루션 |
-| `aten.conv2d.default` | ✅ | ✅ | 2D 컨볼루션 |
-| `aten.conv3d.default` | ✅ | ✅ | 3D 컨볼루션 |
-| `aten.convolution.default` | ✅ | ✅ | 일반 컨볼루션 |
-| `aten._conv_depthwise2d` | ✅ | - | Depthwise 컨볼루션 |
+### 2.1 Schema 기반 인자 재구성
 
-**속성:**
-- `stride`: 스트라이드
-- `padding`: 패딩
-- `dilation`: 딜레이션
-- `groups`: 그룹 수
+ATen fallback은 다음 과정으로 op을 실행합니다:
 
-## 3. Linear/Matrix 연산
+1. `op_type` 문자열(예: `aten.conv2d.default`)에서 `torch.ops.aten.conv2d.default` 함수를 resolve
+2. 함수의 `_schema`를 참조하여 인자 타입 정보를 가져옴
+3. IR의 flat tensor 입력 목록과 `attrs`를 schema에 맞게 positional/keyword 인자로 재구성
+4. 함수를 호출하고 결과를 정규화
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.linear.default` | ✅ | ✅ | 선형 변환 |
-| `aten.addmm.default` | ✅ | ✅ | bias + input @ weight |
-| `aten.mm.default` | ✅ | ✅ | 행렬 곱셈 |
-| `aten.bmm.default` | ✅ | ✅ | 배치 행렬 곱셈 |
-| `aten.matmul.default` | ✅ | ✅ | 일반 행렬 곱셈 |
+### 2.2 지원하는 인자 타입
 
-## 4. 활성화 함수
+| Schema 타입 | 처리 방식 |
+|------------|----------|
+| `Tensor` | 입력 텐서 목록에서 순서대로 할당. 부족하면 attrs에서 스칼라 값 대체 |
+| `Tensor[]`, `List[Tensor]` | `_tensor_list_sizes`로 정확한 그룹 크기 결정 |
+| `Tensor?[]`, `List[Optional[Tensor]]` | `_tensor_list_none_masks`로 None 위치 복원 |
+| `Tensor?`, `Optional[Tensor]` | 입력 텐서가 있으면 할당, 없으면 attrs 확인 후 None |
+| 기타 (int, float, bool 등) | `attrs`에서 이름으로 조회 |
+| kwarg_only | `kwargs` dict로 전달 (positional이 아님) |
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.relu.default` | ✅ | ✅ | ReLU |
-| `aten.relu_` | ✅ | ✅ | In-place ReLU |
-| `aten.gelu.default` | ✅ | ✅ | GELU |
-| `aten.silu.default` | ✅ | ✅ | SiLU/Swish |
-| `aten.sigmoid.default` | ✅ | ✅ | Sigmoid |
-| `aten.tanh.default` | ✅ | ✅ | Tanh |
-| `aten.leaky_relu.default` | ✅ | ✅ | Leaky ReLU |
-| `aten.hardswish.default` | ✅ | ✅ | Hard Swish |
-| `aten.hardsigmoid.default` | ✅ | ✅ | Hard Sigmoid |
+### 2.3 특수 처리
 
-## 5. 정규화 연산
+- **Scalar binary ops**: `x * 0.5` 같은 경우, schema상 `Tensor other`이지만 실제로는 스칼라. 텐서 입력이 부족하면 attrs에서 값을 가져옴
+- **Device 치환**: attrs의 `device: meta`를 `device: cpu`로 자동 변환 (텐서 생성 op용)
+- **Tensor?[] None 복원**: `aten.index.Tensor`의 `[None, idx_tensor]` 같은 패턴에서 None 위치를 정확히 복원
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.batch_norm.default` | ✅ | ✅ | 배치 정규화 |
-| `aten._native_batch_norm_legit_no_training.default` | ✅ | ✅ | 추론용 배치 정규화 |
-| `aten.layer_norm.default` | ✅ | ✅ | 레이어 정규화 |
-| `aten.native_layer_norm.default` | ✅ | ✅ | 네이티브 레이어 정규화 |
-| `aten.group_norm.default` | ✅ | ✅ | 그룹 정규화 |
-| `aten.instance_norm.default` | ✅ | - | 인스턴스 정규화 |
+## 3. 검증된 연산자 카테고리
 
-**Batch Norm 속성:**
-- `training`: 학습 모드 여부
-- `momentum`: 모멘텀
-- `eps`: 엡실론
+다음 카테고리의 연산자들이 attacker agent 테스트(120+ 모델)를 통해 검증되었습니다:
 
-**Layer Norm 속성:**
-- `normalized_shape`: 정규화 shape
-- `eps`: 엡실론
+| 카테고리 | 예시 |
+|---------|------|
+| Convolution | `conv1d`, `conv2d`, `conv3d`, `conv_transpose2d`, `convolution` |
+| Linear/Matrix | `linear`, `addmm`, `mm`, `bmm`, `matmul`, `einsum` |
+| Activation | `relu`, `gelu`, `silu`, `sigmoid`, `tanh`, `leaky_relu`, `hardswish` |
+| Normalization | `batch_norm`, `layer_norm`, `group_norm`, `instance_norm` |
+| Pooling | `max_pool2d`, `avg_pool2d`, `adaptive_avg_pool2d`, `adaptive_max_pool2d` |
+| Elementwise | `add`, `sub`, `mul`, `div`, `pow`, `sqrt`, `rsqrt`, `neg`, `abs`, `exp`, `log`, `clamp` |
+| Shape | `view`, `reshape`, `permute`, `transpose`, `flatten`, `squeeze`, `unsqueeze`, `expand`, `repeat` |
+| Concat/Split | `cat`, `split`, `chunk`, `stack` |
+| Reduction | `mean`, `sum`, `max`, `min`, `amax`, `amin` |
+| Softmax/Attention | `softmax`, `log_softmax`, `scaled_dot_product_attention` |
+| Embedding | `embedding` |
+| Indexing | `select`, `slice`, `index`, `gather` |
+| Comparison | `eq`, `ne`, `lt`, `gt`, `where` |
+| Type/Memory | `to.dtype`, `_to_copy`, `contiguous`, `clone` |
+| RNN | `gru`, `lstm` |
+| 기타 | `dropout`, `sort`, `topk`, `lerp`, `addcmul` |
 
-## 6. Pooling 연산
+## 4. Non-ATen 연산자
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.max_pool2d.default` | ✅ | ✅ | 2D 최대 풀링 |
-| `aten.max_pool2d_with_indices.default` | ✅ | ✅ | 인덱스 포함 최대 풀링 |
-| `aten.avg_pool2d.default` | ✅ | ✅ | 2D 평균 풀링 |
-| `aten.adaptive_avg_pool2d.default` | ✅ | ✅ | 적응형 평균 풀링 |
-| `aten._adaptive_avg_pool2d.default` | ✅ | ✅ | 적응형 평균 풀링 |
-| `aten.adaptive_max_pool2d.default` | ✅ | - | 적응형 최대 풀링 |
+ATen fallback이 처리할 수 없는 연산자는 커스텀 실행 함수가 필요합니다.
 
-**속성:**
-- `kernel_size`: 커널 크기
-- `stride`: 스트라이드
-- `padding`: 패딩
-- `output_size`: 출력 크기 (adaptive)
+현재 등록된 non-ATen 실행 함수:
 
-## 7. 원소별 연산
+| 연산자 | 설명 |
+|--------|------|
+| `<built-in function getitem>` | 다중 출력 op에서 특정 출력을 선택 (예: `max(dim=1)` → values, indices) |
 
-### 7.1 산술 연산
+## 5. 커스텀 연산자 추가
 
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.add.Tensor` | ✅ | ✅ | 덧셈 |
-| `aten.add_.Tensor` | ✅ | ✅ | In-place 덧셈 |
-| `aten.sub.Tensor` | ✅ | ✅ | 뺄셈 |
-| `aten.mul.Tensor` | ✅ | ✅ | 곱셈 |
-| `aten.div.Tensor` | ✅ | ✅ | 나눗셈 |
-| `aten.pow.Tensor_Scalar` | ✅ | ✅ | 거듭제곱 |
-
-### 7.2 단항 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.sqrt.default` | ✅ | ✅ | 제곱근 |
-| `aten.rsqrt.default` | ✅ | ✅ | 역 제곱근 |
-| `aten.neg.default` | ✅ | ✅ | 부정 |
-| `aten.abs.default` | ✅ | ✅ | 절대값 |
-| `aten.exp.default` | ✅ | ✅ | 지수 |
-| `aten.log.default` | ✅ | ✅ | 로그 |
-| `aten.clamp.default` | ✅ | ✅ | 클램프 |
-| `aten.clamp_min.default` | ✅ | - | 최소값 클램프 |
-| `aten.clamp_max.default` | ✅ | - | 최대값 클램프 |
-
-## 8. Shape 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.view.default` | ✅ | ✅ | 뷰 변환 |
-| `aten._unsafe_view.default` | ✅ | ✅ | 안전하지 않은 뷰 |
-| `aten.reshape.default` | ✅ | ✅ | 재형성 |
-| `aten.permute.default` | ✅ | ✅ | 차원 순서 변경 |
-| `aten.transpose.int` | ✅ | ✅ | 전치 |
-| `aten.t.default` | ✅ | ✅ | 2D 전치 |
-| `aten.flatten.using_ints` | ✅ | ✅ | 평탄화 |
-| `aten.squeeze.dim` | ✅ | ✅ | 차원 제거 |
-| `aten.unsqueeze.default` | ✅ | ✅ | 차원 추가 |
-| `aten.expand.default` | ✅ | ✅ | 확장 |
-| `aten.repeat.default` | ✅ | - | 반복 |
-
-**Flatten 속성:**
-- `start_dim`: 시작 차원
-- `end_dim`: 끝 차원
-
-## 9. 연결/분할 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.cat.default` | ✅ | ✅ | 연결 |
-| `aten.split.Tensor` | ✅ | ✅ | 분할 |
-| `aten.split_with_sizes.default` | ✅ | - | 크기 지정 분할 |
-| `aten.chunk.default` | ✅ | - | 청크 분할 |
-| `aten.stack.default` | ✅ | ✅ | 스택 |
-
-**속성:**
-- `dim`: 연결/분할 차원
-- `split_size`: 분할 크기
-
-## 10. 축소 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.mean.dim` | ✅ | ✅ | 평균 |
-| `aten.sum.dim_IntList` | ✅ | ✅ | 합계 |
-| `aten.max.dim` | ✅ | ✅ | 최대값 |
-| `aten.amax.default` | ✅ | ✅ | 축 최대값 |
-| `aten.min.dim` | ✅ | ✅ | 최소값 |
-| `aten.amin.default` | ✅ | ✅ | 축 최소값 |
-
-**속성:**
-- `dim`: 축소 차원
-- `keepdim`: 차원 유지 여부
-
-## 11. Softmax/Attention 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.softmax.int` | ✅ | ✅ | Softmax |
-| `aten._softmax.default` | ✅ | ✅ | 네이티브 Softmax |
-| `aten.log_softmax.int` | ✅ | ✅ | Log Softmax |
-| `aten._log_softmax.default` | ✅ | ✅ | 네이티브 Log Softmax |
-| `aten.scaled_dot_product_attention.default` | ✅ | ✅ | SDPA |
-| `aten._scaled_dot_product_flash_attention.default` | ✅ | - | Flash Attention |
-| `aten._scaled_dot_product_efficient_attention.default` | ✅ | - | Efficient Attention |
-
-**Softmax 속성:**
-- `dim`: Softmax 차원
-
-**SDPA 속성:**
-- `dropout_p`: 드롭아웃 확률
-- `is_causal`: 인과적 마스킹
-- `scale`: 스케일 팩터
-
-## 12. Embedding 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.embedding.default` | ✅ | ✅ | 임베딩 룩업 |
-
-**속성:**
-- `padding_idx`: 패딩 인덱스
-
-## 13. Dropout 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.dropout.default` | ✅ | ✅ | 드롭아웃 |
-| `aten.native_dropout.default` | ✅ | ✅ | 네이티브 드롭아웃 |
-
-**속성:**
-- `p`: 드롭아웃 확률
-- `train`: 학습 모드
-
-## 14. 타입/메모리 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.to.dtype` | ✅ | ✅ | dtype 변환 |
-| `aten.to.device` | ✅ | ✅ | device 변환 |
-| `aten._to_copy.default` | ✅ | ✅ | 복사 변환 |
-| `aten.contiguous.default` | ✅ | ✅ | 연속 메모리 |
-| `aten.clone.default` | ✅ | ✅ | 복제 |
-
-## 15. 인덱싱 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.select.int` | ✅ | ✅ | 인덱스 선택 |
-| `aten.slice.Tensor` | ✅ | ✅ | 슬라이스 |
-| `aten.index.Tensor` | ✅ | - | 텐서 인덱싱 |
-| `aten.gather.default` | ✅ | ✅ | Gather |
-| `aten.scatter.value` | ✅ | - | Scatter |
-
-**Select 속성:**
-- `dim`: 선택 차원
-- `index`: 인덱스
-
-**Slice 속성:**
-- `dim`: 슬라이스 차원
-- `start`, `end`, `step`: 범위
-
-## 16. 비교 연산
-
-| 연산자 | 변환 | 실행 | 설명 |
-|--------|------|------|------|
-| `aten.eq.Tensor` | ✅ | ✅ | 같음 |
-| `aten.ne.Tensor` | ✅ | ✅ | 다름 |
-| `aten.lt.Tensor` | ✅ | ✅ | 미만 |
-| `aten.le.Tensor` | ✅ | - | 이하 |
-| `aten.gt.Tensor` | ✅ | ✅ | 초과 |
-| `aten.ge.Tensor` | ✅ | - | 이상 |
-| `aten.where.self` | ✅ | ✅ | 조건 선택 |
-
-## 17. 지원되지 않는 연산자 처리
-
-지원되지 않는 연산자도 기본 변환기로 IR 추출이 가능합니다:
+ATen에 없는 연산자를 사용하는 경우에만 수동 등록이 필요합니다:
 
 ```python
-# 기본 변환: 입출력 메타데이터는 보존
-ir = extract_ir(model, inputs, strict=False)  # 오류 없이 추출
+from npu_ir.ops import register_executor
 
-# Strict 모드: 미지원 연산자 시 오류
-ir = extract_ir(model, inputs, strict=True)  # ConversionError 발생
+@register_executor("my_custom_op")
+def execute_my_op(inputs, attrs):
+    result = my_custom_operation(inputs[0], **attrs)
+    return [result]
 ```
 
-## 18. 등록된 연산자 확인
+ATen 연산자는 등록 없이 자동으로 동작합니다. 자세한 내용은 [확장 가이드](extending.md)를 참조하세요.
+
+## 6. 등록된 연산자 확인
 
 ```python
 from npu_ir import list_registered_ops
 
 ops = list_registered_ops()
-print("Conversion ops:", len(ops['conversion']))
-print("Execution ops:", len(ops['execution']))
+print("Custom conversion ops:", len(ops['conversion']))  # 사용자 등록 수
+print("Custom execution ops:", len(ops['execution']))    # getitem + 사용자 등록 수
 ```
 
-## 19. 커스텀 연산자 추가
+## 7. 알려진 제한사항
 
-지원되지 않는 연산자는 직접 추가할 수 있습니다:
-
-```python
-from npu_ir.ops import register_op, register_executor
-from npu_ir import OpNode
-
-@register_op("aten.my_custom_op")
-def convert_my_op(node_info):
-    return OpNode(
-        name=node_info.name,
-        op_type="aten.my_custom_op",
-        inputs=node_info.input_metas,
-        outputs=node_info.output_metas,
-        attrs=node_info.attrs,
-    )
-
-@register_executor("aten.my_custom_op")
-def execute_my_op(inputs, attrs):
-    # 실제 연산 수행
-    result = my_custom_operation(inputs[0], **attrs)
-    return [result]
-```
-
-자세한 내용은 [확장 가이드](extending.md)를 참조하세요.
+- **Mixed precision**: `x.half()` 후 float32 weight를 사용하는 경우, ATen op이 자동 캐스팅하지 않아 dtype mismatch 발생 가능
+- **Dynamic shapes**: `SymInt` 차원은 `convert_exported_program()` 단계에서 차단됨
+- **Meta device 상수**: `forward()`에서 `torch.tensor(...)` 생성 시 meta device에서는 데이터가 없어 `ConversionError` 발생. `self.register_buffer()` 사용 권장

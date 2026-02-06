@@ -11,7 +11,7 @@ from .base import register_model
     name="RecurrentUnroll",
     input_shapes=[(32,)],
     categories=["shared_weights"],
-    description="Same linear layer applied 5 times (unrolled RNN-style)"
+    description="Same linear layer applied 5 times (unrolled RNN-style)",
 )
 class RecurrentUnroll(nn.Module):
     """Unrolled recurrent-style model with shared weights.
@@ -47,7 +47,7 @@ class RecurrentUnroll(nn.Module):
     name="WeightTying",
     input_shapes=[(16,)],
     categories=["shared_weights"],
-    description="Embedding layer with tied input/output weights"
+    description="Embedding layer with tied input/output weights",
 )
 class WeightTying(nn.Module):
     """Model with tied embedding and output weights.

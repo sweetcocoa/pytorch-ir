@@ -117,9 +117,13 @@ class NPU_IR:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "NPU_IR":
         _dtype_map = {
-            "float32": torch.float32, "float64": torch.float64,
-            "float16": torch.float16, "int32": torch.int32,
-            "int64": torch.int64, "int8": torch.int8, "bool": torch.bool,
+            "float32": torch.float32,
+            "float64": torch.float64,
+            "float16": torch.float16,
+            "int32": torch.int32,
+            "int64": torch.int64,
+            "int8": torch.int8,
+            "bool": torch.bool,
         }
         constants = {}
         for k, v in data.get("constants", {}).items():

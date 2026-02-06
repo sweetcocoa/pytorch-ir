@@ -10,7 +10,7 @@ from .base import register_model
     name="SiameseEncoder",
     input_shapes=[(3, 64, 64), (3, 64, 64)],
     categories=["multi_io", "shared_weights"],
-    description="Siamese network: applies same encoder to two images"
+    description="Siamese network: applies same encoder to two images",
 )
 class SiameseEncoder(nn.Module):
     """Siamese encoder that applies the same CNN to two inputs.
@@ -55,7 +55,7 @@ class SiameseEncoder(nn.Module):
     name="MultiTaskHead",
     input_shapes=[(3, 32, 32)],
     categories=["multi_io"],
-    description="Shared backbone with multiple output heads"
+    description="Shared backbone with multiple output heads",
 )
 class MultiTaskHead(nn.Module):
     """Multi-task model with shared backbone and multiple heads.

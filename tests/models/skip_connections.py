@@ -30,7 +30,7 @@ class ResidualBlock(nn.Module):
     name="DeepResNet",
     input_shapes=[(3, 32, 32)],
     categories=["skip_connections"],
-    description="Deep ResNet with multiple residual blocks"
+    description="Deep ResNet with multiple residual blocks",
 )
 class DeepResNet(nn.Module):
     """Deep ResNet with multiple residual blocks.
@@ -89,7 +89,7 @@ class DenseLayer(nn.Module):
     name="DenseBlock",
     input_shapes=[(3, 32, 32)],
     categories=["skip_connections"],
-    description="DenseNet-style block with concatenation-based connections"
+    description="DenseNet-style block with concatenation-based connections",
 )
 class DenseBlock(nn.Module):
     """DenseNet-style model with dense connections.

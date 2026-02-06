@@ -374,10 +374,12 @@ def list_registered_ops() -> Dict[str, list]
 **반환값:**
 ```python
 {
-    "conversion": ["aten.conv2d.default", "aten.linear.default", ...],
-    "execution": ["aten.conv2d.default", "aten.linear.default", ...]
+    "conversion": [...],   # 사용자가 등록한 커스텀 변환 함수 (기본적으로 비어 있음)
+    "execution": ["<built-in function getitem>", ...],  # getitem + 사용자 등록
 }
 ```
+
+> ATen 연산자는 레지스트리에 등록하지 않아도 `_aten_fallback()`이 schema 기반으로 자동 실행합니다.
 
 ---
 

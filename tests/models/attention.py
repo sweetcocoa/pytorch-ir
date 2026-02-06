@@ -13,7 +13,7 @@ from .base import register_model
     name="SelfAttention",
     input_shapes=[(16, 64)],
     categories=["attention"],
-    description="Basic multi-head self-attention (4 heads)"
+    description="Basic multi-head self-attention (4 heads)",
 )
 class SelfAttention(nn.Module):
     """Basic multi-head self-attention.
@@ -80,7 +80,7 @@ class SelfAttention(nn.Module):
     name="CrossAttention",
     input_shapes=[(16, 64), (32, 64)],
     categories=["attention", "multi_io"],
-    description="Cross-attention with query and context inputs"
+    description="Cross-attention with query and context inputs",
 )
 class CrossAttention(nn.Module):
     """Cross-attention module.
@@ -122,7 +122,7 @@ class CrossAttention(nn.Module):
         _, C_L, _ = context.shape
 
         # Project
-        q = self.q_proj(query)   # (B, Q_L, d_model)
+        q = self.q_proj(query)  # (B, Q_L, d_model)
         k = self.k_proj(context)  # (B, C_L, d_model)
         v = self.v_proj(context)
 
@@ -163,7 +163,7 @@ class FeedForward(nn.Module):
     name="TransformerBlock",
     input_shapes=[(16, 64)],
     categories=["attention", "skip_connections"],
-    description="Complete transformer block with attention, FFN, and skip connections"
+    description="Complete transformer block with attention, FFN, and skip connections",
 )
 class TransformerBlock(nn.Module):
     """Complete transformer encoder block.

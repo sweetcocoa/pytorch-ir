@@ -112,10 +112,7 @@ def verify_ir(
             return False, VerificationReport(
                 is_valid=False,
                 num_outputs=len(ir_outputs),
-                error_message=(
-                    f"Output count mismatch: original={len(original_outputs)}, "
-                    f"ir={len(ir_outputs)}"
-                ),
+                error_message=(f"Output count mismatch: original={len(original_outputs)}, ir={len(ir_outputs)}"),
             )
 
         all_close = True
@@ -201,10 +198,7 @@ def verify_ir_with_state_dict(
             return False, VerificationReport(
                 is_valid=False,
                 num_outputs=len(ir_outputs),
-                error_message=(
-                    f"Output count mismatch: original={len(original_outputs)}, "
-                    f"ir={len(ir_outputs)}"
-                ),
+                error_message=(f"Output count mismatch: original={len(original_outputs)}, ir={len(ir_outputs)}"),
             )
 
         all_close = True

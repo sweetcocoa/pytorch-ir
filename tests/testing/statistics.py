@@ -22,6 +22,7 @@ class IRStatistics:
         weight_metadata: List of weight info dicts (name, shape, dtype, num_params).
         total_weight_params: Total number of weight parameters.
     """
+
     num_nodes: int
     num_edges: int
     num_inputs: int
@@ -64,12 +65,14 @@ class IRStatistics:
         # Node shapes
         node_shapes = []
         for node in ir.nodes:
-            node_shapes.append({
-                "name": node.name,
-                "op_type": node.op_type,
-                "input_shapes": [list(inp.shape) for inp in node.inputs],
-                "output_shapes": [list(out.shape) for out in node.outputs],
-            })
+            node_shapes.append(
+                {
+                    "name": node.name,
+                    "op_type": node.op_type,
+                    "input_shapes": [list(inp.shape) for inp in node.inputs],
+                    "output_shapes": [list(out.shape) for out in node.outputs],
+                }
+            )
 
         # Weight metadata
         weight_metadata = []
@@ -80,12 +83,14 @@ class IRStatistics:
                 num_params *= dim
             total_weight_params += num_params
 
-            weight_metadata.append({
-                "name": w.name,
-                "shape": list(w.shape),
-                "dtype": w.dtype,
-                "num_params": num_params,
-            })
+            weight_metadata.append(
+                {
+                    "name": w.name,
+                    "shape": list(w.shape),
+                    "dtype": w.dtype,
+                    "num_params": num_params,
+                }
+            )
 
         return cls(
             num_nodes=num_nodes,
