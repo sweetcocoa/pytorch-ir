@@ -93,7 +93,20 @@ my_compiler/
 │   ├── weight_loader.py     # Weight 로더
 │   ├── verifier.py          # 검증기
 │   └── ops/                 # 연산자 구현
-├── tests/                   # 테스트 코드
+├── tests/
+│   ├── models/              # 테스트 모델 정의
+│   │   ├── multi_io.py      # 다중 입출력 모델
+│   │   ├── skip_connections.py  # 잔차 연결 모델
+│   │   ├── shared_weights.py    # 가중치 공유 모델
+│   │   └── attention.py     # 어텐션 모델
+│   ├── testing/             # 테스트 프레임워크
+│   │   ├── mermaid.py       # Mermaid DAG 생성
+│   │   ├── statistics.py    # IR 통계 수집
+│   │   ├── report.py        # 마크다운 리포트
+│   │   └── runner.py        # 테스트 러너
+│   ├── test_comprehensive.py  # 종합 테스트
+│   └── __main__.py          # CLI 진입점
+├── reports/                 # 테스트 리포트 (생성됨)
 ├── examples/                # 예제 코드
 └── docs/                    # 문서
 ```
@@ -106,7 +119,22 @@ my_compiler/
 ## 테스트 실행
 
 ```bash
+# 기본 테스트
 uv run pytest tests/ -v
+
+# 종합 테스트 (모든 테스트 모델)
+uv run pytest tests/test_comprehensive.py -v
+
+# 리포트 생성
+uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
+
+# 카테고리별 필터
+uv run pytest tests/test_comprehensive.py -k "attention" -v
+
+# CLI로 실행
+uv run python -m tests --output reports/
+uv run python -m tests --list-models
+uv run python -m tests --category attention
 ```
 
 ## 라이선스

@@ -468,7 +468,98 @@ configs = {
 irs = extract_multiple_models(configs)
 ```
 
-## 9. 다음 단계
+## 9. 종합 테스트 시스템
+
+### 9.1 테스트 모델
+
+프레임워크는 다양한 계산 그래프 패턴을 커버하는 테스트 모델을 제공합니다:
+
+| 카테고리 | 모델 | 설명 |
+|---------|------|------|
+| multi_io | SiameseEncoder | 두 이미지에 동일 인코더 적용 |
+| multi_io | MultiTaskHead | 공유 백본 + 다중 출력 헤드 |
+| skip_connections | DeepResNet | 다중 잔차 블록 |
+| skip_connections | DenseBlock | DenseNet 스타일 연결 |
+| shared_weights | RecurrentUnroll | 동일 셀 반복 적용 |
+| shared_weights | WeightTying | 임베딩-출력 가중치 공유 |
+| attention | SelfAttention | 기본 셀프 어텐션 |
+| attention | CrossAttention | 크로스 어텐션 |
+| attention | TransformerBlock | 완전한 트랜스포머 블록 |
+
+### 9.2 pytest 실행
+
+```bash
+# 기본 실행
+pytest tests/test_comprehensive.py -v
+
+# 리포트 생성
+pytest tests/test_comprehensive.py --generate-reports --output reports/
+
+# 카테고리 필터
+pytest tests/test_comprehensive.py -k "attention" --generate-reports
+```
+
+### 9.3 CLI 실행
+
+```bash
+# 전체 테스트
+python -m tests --output reports/
+
+# 카테고리 필터
+python -m tests --category attention
+
+# 단일 모델
+python -m tests --model SelfAttention
+
+# 모델 목록
+python -m tests --list-models
+
+# 카테고리 목록
+python -m tests --list-categories
+```
+
+### 9.4 리포트 구조
+
+테스트 리포트는 마크다운 형식으로 생성됩니다:
+
+```
+reports/
+├── SUMMARY.md           # 전체 요약
+├── SelfAttention.md     # 개별 모델 리포트
+├── TransformerBlock.md
+└── ...
+```
+
+각 모델 리포트에는 다음 정보가 포함됩니다:
+
+- **Summary 테이블**: nodes, edges, inputs, outputs, weights, total params
+- **Numerical Verification**: max_diff, mean_diff
+- **DAG Visualization**: Mermaid flowchart
+- **Operator Distribution**: Mermaid pie chart
+- **Node Details**: 접이식 테이블
+- **Weight Metadata**: 테이블
+
+### 9.5 커스텀 테스트 모델 추가
+
+```python
+from tests.models.base import register_model
+
+@register_model(
+    name="MyCustomModel",
+    input_shapes=[(3, 32, 32)],
+    categories=["custom"],
+    description="My custom test model"
+)
+class MyCustomModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(3, 64, 3)
+
+    def forward(self, x):
+        return self.conv(x)
+```
+
+## 10. 다음 단계
 
 - [API 레퍼런스](api.md) - 상세 API 문서
 - [연산자 지원](operators.md) - 지원되는 연산자 목록

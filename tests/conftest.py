@@ -34,9 +34,13 @@ class ReportCollector:
 
     def __init__(self):
         self.results: List[TestResult] = []
+        self._seen_models: set = set()
 
     def add_result(self, result: TestResult):
-        self.results.append(result)
+        # Avoid duplicate entries for same model
+        if result.model_name not in self._seen_models:
+            self.results.append(result)
+            self._seen_models.add(result.model_name)
 
 
 # Global collector instance
@@ -47,8 +51,8 @@ _report_collector: Optional[ReportCollector] = None
 def report_collector(request) -> ReportCollector:
     """Fixture to collect test results for reporting."""
     global _report_collector
-    if _report_collector is None:
-        _report_collector = ReportCollector()
+    # Reset for new session
+    _report_collector = ReportCollector()
     return _report_collector
 
 

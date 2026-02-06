@@ -12,12 +12,13 @@ def _format_shape(shape: Tuple[int, ...]) -> str:
 
 
 def _sanitize_label(text: str) -> str:
-    """Sanitize text for Mermaid labels."""
-    # Remove or escape special characters
+    """Sanitize text for Mermaid labels.
+
+    Note: In Mermaid, <br/> is used for line breaks in labels,
+    so we don't need to escape those. Mermaid uses HTML-like tags.
+    """
+    # Replace quotes with single quotes
     text = text.replace('"', "'")
-    text = text.replace("<", "&lt;")
-    text = text.replace(">", "&gt;")
-    text = text.replace("&", "&amp;")
     return text
 
 
