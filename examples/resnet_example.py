@@ -33,11 +33,12 @@ def main():
     original_model.eval()
     print("   Loaded ResNet18 with ImageNet weights")
 
-    # 2. Create meta model
+    # 2. Create meta model (eval mode to match original)
     print("\n2. Creating meta ResNet18 for IR extraction...")
     with torch.device("meta"):
         meta_model = resnet18()
-    print("   Meta model created")
+    meta_model.eval()
+    print("   Meta model created (eval mode)")
 
     # 3. Example inputs
     print("\n3. Preparing example inputs...")
