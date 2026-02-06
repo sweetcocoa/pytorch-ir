@@ -701,7 +701,7 @@ def execute_embedding(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
 def execute_dropout(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
     """Execute dropout operation (identity in eval mode)."""
     # In eval mode, dropout is identity
-    training = attrs.get("training", False)
+    training = attrs.get("train", False)
     p = attrs.get("p", 0.5)
     if training:
         return [F.dropout(inputs[0], p=p, training=True)]

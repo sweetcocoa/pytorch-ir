@@ -100,101 +100,26 @@ def _get_input_names(node: Node) -> List[str]:
 
 
 def _extract_op_attrs(node: Node) -> Dict[str, Any]:
-    """Extract operation attributes from node args/kwargs."""
+    """Extract operation attributes from node args/kwargs using schema introspection."""
     attrs = {}
-
-    # Copy kwargs directly
     attrs.update(node.kwargs)
 
-    # For specific ops, extract positional args as named attributes
-    target_str = str(node.target) if node.target else ""
+    target = node.target
+    if not hasattr(target, "_schema"):
+        return attrs
 
-    # Common patterns for extracting attributes from positional args
-    # This is operation-specific
-    if "conv" in target_str.lower():
-        # conv2d: input, weight, bias, stride, padding, dilation, groups
-        if len(node.args) > 3 and not isinstance(node.args[3], Node):
-            attrs["stride"] = node.args[3]
-        if len(node.args) > 4 and not isinstance(node.args[4], Node):
-            attrs["padding"] = node.args[4]
-        if len(node.args) > 5 and not isinstance(node.args[5], Node):
-            attrs["dilation"] = node.args[5]
-        if len(node.args) > 6 and not isinstance(node.args[6], Node):
-            attrs["groups"] = node.args[6]
-
-    elif "adaptive" in target_str.lower() and "pool" in target_str.lower():
-        # Adaptive pooling: (input, output_size)
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["output_size"] = node.args[1]
-
-    elif "pool" in target_str.lower():
-        # Regular pooling: kernel_size, stride, padding
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["kernel_size"] = node.args[1]
-        if len(node.args) > 2 and not isinstance(node.args[2], Node):
-            attrs["stride"] = node.args[2]
-        if len(node.args) > 3 and not isinstance(node.args[3], Node):
-            attrs["padding"] = node.args[3]
-
-    elif "linear" in target_str.lower() or "addmm" in target_str.lower():
-        # Linear: input, weight, bias
-        pass  # No special attrs needed
-
-    elif "batch_norm" in target_str.lower():
-        if len(node.args) > 5 and not isinstance(node.args[5], Node):
-            attrs["training"] = node.args[5]
-        if len(node.args) > 6 and not isinstance(node.args[6], Node):
-            attrs["momentum"] = node.args[6]
-        if len(node.args) > 7 and not isinstance(node.args[7], Node):
-            attrs["eps"] = node.args[7]
-
-    elif "layer_norm" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["normalized_shape"] = node.args[1]
-
-    elif "softmax" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["dim"] = node.args[1]
-
-    elif "view" in target_str.lower() or "reshape" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["shape"] = node.args[1]
-
-    elif "permute" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["dims"] = node.args[1]
-
-    elif "transpose" in target_str.lower():
-        # transpose.int: (input, dim0, dim1)
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["dim0"] = node.args[1]
-        if len(node.args) > 2 and not isinstance(node.args[2], Node):
-            attrs["dim1"] = node.args[2]
-
-    elif "split" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["split_size"] = node.args[1]
-        if len(node.args) > 2 and not isinstance(node.args[2], Node):
-            attrs["dim"] = node.args[2]
-
-    elif "cat" in target_str.lower():
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["dim"] = node.args[1]
-
-    elif "flatten" in target_str.lower():
-        # flatten: input, start_dim, end_dim
-        if len(node.args) > 1 and not isinstance(node.args[1], Node):
-            attrs["start_dim"] = node.args[1]
-        if len(node.args) > 2 and not isinstance(node.args[2], Node):
-            attrs["end_dim"] = node.args[2]
-
-    # For element-wise binary ops, capture scalar second operand
-    # This handles cases like: div(tensor, 4.0), mul(tensor, 0.5)
-    for pattern in ("div", "mul", "sub", "add", "pow"):
-        if pattern in target_str.lower():
-            if len(node.args) > 1 and not isinstance(node.args[1], Node):
-                attrs.setdefault("other", node.args[1])
+    schema = target._schema
+    for i, schema_arg in enumerate(schema.arguments):
+        if i >= len(node.args):
             break
+        value = node.args[i]
+        if isinstance(value, Node):
+            continue
+        if isinstance(value, (list, tuple)) and any(isinstance(v, Node) for v in value):
+            continue
+        if value is None and "Tensor" in str(schema_arg.type):
+            continue
+        attrs[schema_arg.name] = value
 
     return attrs
 
