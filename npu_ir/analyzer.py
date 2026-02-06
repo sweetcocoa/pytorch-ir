@@ -101,14 +101,48 @@ def _get_input_names(node: Node) -> List[str]:
 
 def _extract_op_attrs(node: Node) -> Dict[str, Any]:
     """Extract operation attributes from node args/kwargs using schema introspection."""
+    import operator as _operator
+
     attrs = {}
     attrs.update(node.kwargs)
 
     target = node.target
+
+    # Special case: operator.getitem — extract index from second arg
+    if target is _operator.getitem:
+        if len(node.args) >= 2 and not isinstance(node.args[1], Node):
+            attrs["index"] = node.args[1]
+        return attrs
+
+    # Special case: aten.index.Tensor — record which dims have None indices
+    target_str = str(target)
+    if "aten.index" in target_str and len(node.args) >= 2:
+        index_arg = node.args[1]
+        if isinstance(index_arg, (list, tuple)):
+            # Record the pattern: True = has index tensor, False = None (slice all)
+            none_mask = [a is None for a in index_arg]
+            attrs["index_none_mask"] = none_mask
+
     if not hasattr(target, "_schema"):
         return attrs
 
     schema = target._schema
+
+    # Record sizes of Tensor[] args so executor can re-group flat tensor list
+    tensor_list_sizes = []
+    for i, schema_arg in enumerate(schema.arguments):
+        if i >= len(node.args):
+            break
+        value = node.args[i]
+        arg_type_str = str(schema_arg.type)
+        if ("Tensor[]" in arg_type_str or "List[Tensor]" in arg_type_str) and isinstance(
+            value, (list, tuple)
+        ):
+            tensor_list_sizes.append(len(value))
+
+    if tensor_list_sizes:
+        attrs["_tensor_list_sizes"] = tensor_list_sizes
+
     for i, schema_arg in enumerate(schema.arguments):
         if i >= len(node.args):
             break
@@ -161,6 +195,8 @@ class GraphAnalyzer:
         weight_placeholders = set()
         weight_placeholders.update(dict(self.graph_signature.inputs_to_parameters).keys())
         weight_placeholders.update(dict(self.graph_signature.inputs_to_buffers).keys())
+        if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants"):
+            weight_placeholders.update(dict(self.graph_signature.inputs_to_lifted_tensor_constants).keys())
 
         input_metas = []
         for arg in node.args:
@@ -224,17 +260,18 @@ class GraphAnalyzer:
         # Get parameter names from signature
         params_dict = dict(self.graph_signature.inputs_to_parameters)
         buffers_dict = dict(self.graph_signature.inputs_to_buffers)
+        constants_dict = dict(self.graph_signature.inputs_to_lifted_tensor_constants) if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants") else {}
 
         for node in self.graph.nodes:
             if node.op == "placeholder":
                 param_name = params_dict.get(node.name)
                 buffer_name = buffers_dict.get(node.name)
+                constant_name = constants_dict.get(node.name)
 
-                if param_name or buffer_name:
-                    name = param_name or buffer_name
+                name = param_name or buffer_name or constant_name
+                if name:
                     metas = self._node_outputs.get(node.name, [])
                     for meta in metas:
-                        # Use the actual parameter name
                         weights.append(
                             TensorMeta(
                                 name=name,
@@ -251,21 +288,26 @@ class GraphAnalyzer:
         Returns:
             Dict mapping placeholder names (e.g., 'p_linear_weight') to
             state_dict keys (e.g., 'linear.weight').
+            Also includes lifted tensor constants.
         """
         mapping = {}
 
         params_dict = dict(self.graph_signature.inputs_to_parameters)
         buffers_dict = dict(self.graph_signature.inputs_to_buffers)
+        constants_dict = dict(self.graph_signature.inputs_to_lifted_tensor_constants) if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants") else {}
 
         for node in self.graph.nodes:
             if node.op == "placeholder":
                 param_name = params_dict.get(node.name)
                 buffer_name = buffers_dict.get(node.name)
+                constant_name = constants_dict.get(node.name)
 
                 if param_name:
                     mapping[node.name] = param_name
                 elif buffer_name:
                     mapping[node.name] = buffer_name
+                elif constant_name:
+                    mapping[node.name] = constant_name
 
         return mapping
 
@@ -277,10 +319,6 @@ class GraphAnalyzer:
             if node.op == "call_function":
                 target = node.target
                 target_str = str(target)
-
-                # Skip trivial operations if needed
-                if target_str.startswith("operator."):
-                    continue
 
                 input_metas = self.get_node_input_meta(node)
                 output_metas = self._node_outputs.get(node.name, [])

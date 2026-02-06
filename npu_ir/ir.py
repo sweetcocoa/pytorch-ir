@@ -4,6 +4,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+import torch
+
 
 @dataclass
 class TensorMeta:
@@ -86,12 +88,16 @@ class NPU_IR:
     # e.g., {"p_linear_weight": "linear.weight", "p_linear_bias": "linear.bias"}
     weight_name_mapping: Dict[str, str] = field(default_factory=dict)
 
+    # Lifted tensor constants from torch.export (e.g., index tensors in forward())
+    # Maps constant name (e.g., "lifted_tensor_0") to serializable representation
+    constants: Dict[str, Any] = field(default_factory=dict)
+
     # Metadata
     model_name: str = ""
     pytorch_version: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "model_name": self.model_name,
             "pytorch_version": self.pytorch_version,
             "graph_inputs": [t.to_dict() for t in self.graph_inputs],
@@ -100,9 +106,26 @@ class NPU_IR:
             "weight_name_mapping": self.weight_name_mapping,
             "nodes": [n.to_dict() for n in self.nodes],
         }
+        if self.constants:
+            d["constants"] = {
+                k: {"data": v.tolist(), "dtype": str(v.dtype).replace("torch.", "")}
+                for k, v in self.constants.items()
+                if isinstance(v, torch.Tensor)
+            }
+        return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "NPU_IR":
+        _dtype_map = {
+            "float32": torch.float32, "float64": torch.float64,
+            "float16": torch.float16, "int32": torch.int32,
+            "int64": torch.int64, "int8": torch.int8, "bool": torch.bool,
+        }
+        constants = {}
+        for k, v in data.get("constants", {}).items():
+            dt = _dtype_map.get(v["dtype"], torch.float32)
+            constants[k] = torch.tensor(v["data"], dtype=dt)
+
         return cls(
             model_name=data.get("model_name", ""),
             pytorch_version=data.get("pytorch_version", ""),
@@ -110,6 +133,7 @@ class NPU_IR:
             graph_outputs=[TensorMeta.from_dict(t) for t in data["graph_outputs"]],
             weights=[TensorMeta.from_dict(t) for t in data["weights"]],
             weight_name_mapping=data.get("weight_name_mapping", {}),
+            constants=constants,
             nodes=[OpNode.from_dict(n) for n in data["nodes"]],
         )
 

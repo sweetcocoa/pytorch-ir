@@ -54,6 +54,9 @@ def _compare_tensors(
     if original.shape != ir_output.shape:
         return False, float("inf"), float("inf")
 
+    if original.numel() == 0:
+        return True, 0.0, 0.0
+
     # Convert to same dtype for comparison
     original = original.float()
     ir_output = ir_output.float()

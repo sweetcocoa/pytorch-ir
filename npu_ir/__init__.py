@@ -29,6 +29,7 @@ Example usage:
 
 from typing import Any, Optional, Tuple
 
+import torch
 import torch.nn as nn
 
 from .analyzer import GraphAnalyzer
@@ -152,5 +153,17 @@ def extract_ir(
 
     # Convert to NPU IR
     ir = convert_exported_program(exported, model_name=model_name, strict=False)
+
+    # Capture lifted tensor constants from export
+    if hasattr(exported, "constants") and exported.constants:
+        for name, tensor in exported.constants.items():
+            if tensor.device.type == "meta":
+                raise ConversionError(
+                    f"Lifted tensor constant '{name}' is on meta device and has no data. "
+                    f"This happens when forward() creates tensors via torch.tensor(...). "
+                    f"Fix: use self.register_buffer('{name}', tensor) in __init__() instead, "
+                    f"or pass a CPU-device model to extract_ir()."
+                )
+        ir.constants = dict(exported.constants)
 
     return ir

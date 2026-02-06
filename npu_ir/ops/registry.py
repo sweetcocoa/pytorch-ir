@@ -62,6 +62,40 @@ def register_executor(op_pattern: str):
     return decorator
 
 
+def _base_op_name(op_type: str) -> str:
+    """Strip the overload suffix to get the base op name.
+
+    e.g. 'aten.conv2d.default' -> 'aten.conv2d'
+         'aten.add.Tensor' -> 'aten.add'
+         '<built-in function getitem>' -> '<built-in function getitem>'
+    """
+    if op_type.startswith("aten."):
+        parts = op_type.split(".")
+        # aten.op_name.overload -> aten.op_name
+        if len(parts) >= 3:
+            return ".".join(parts[:2])
+    return op_type
+
+
+def _lookup_registry(registry: Dict[str, Callable], op_type: str) -> Optional[Callable]:
+    """Look up a function in a registry by exact match, then by base op name."""
+    # Exact match
+    if op_type in registry:
+        return registry[op_type]
+
+    # Match by base op name (strip overload suffix)
+    base = _base_op_name(op_type)
+    if base != op_type and base in registry:
+        return registry[base]
+
+    # Check if any registered pattern has the same base op name
+    for pattern, fn in registry.items():
+        if _base_op_name(pattern) == base:
+            return fn
+
+    return None
+
+
 def get_conversion_fn(op_type: str) -> Optional[Callable]:
     """Get the conversion function for an operator type.
 
@@ -71,16 +105,7 @@ def get_conversion_fn(op_type: str) -> Optional[Callable]:
     Returns:
         The conversion function if registered, None otherwise.
     """
-    # Try exact match first
-    if op_type in _CONVERSION_REGISTRY:
-        return _CONVERSION_REGISTRY[op_type]
-
-    # Try pattern matching (e.g., "aten.conv2d" matches "aten.conv2d.default")
-    for pattern, fn in _CONVERSION_REGISTRY.items():
-        if pattern in op_type or op_type in pattern:
-            return fn
-
-    return None
+    return _lookup_registry(_CONVERSION_REGISTRY, op_type)
 
 
 def get_execution_fn(op_type: str) -> Optional[Callable]:
@@ -92,16 +117,7 @@ def get_execution_fn(op_type: str) -> Optional[Callable]:
     Returns:
         The execution function if registered, None otherwise.
     """
-    # Try exact match first
-    if op_type in _EXECUTION_REGISTRY:
-        return _EXECUTION_REGISTRY[op_type]
-
-    # Try pattern matching
-    for pattern, fn in _EXECUTION_REGISTRY.items():
-        if pattern in op_type or op_type in pattern:
-            return fn
-
-    return None
+    return _lookup_registry(_EXECUTION_REGISTRY, op_type)
 
 
 def list_registered_ops() -> Dict[str, list]:

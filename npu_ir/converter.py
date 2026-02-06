@@ -7,13 +7,37 @@ from torch.export import ExportedProgram
 from .analyzer import GraphAnalyzer, NodeInfo
 from .ir import NPU_IR, OpNode
 from .ops.aten_ops import get_op_type
-from .ops.registry import get_conversion_fn, is_supported_op
+from .ops.registry import get_conversion_fn
 
 
 class ConversionError(Exception):
     """Raised when IR conversion fails."""
 
     pass
+
+
+def _validate_static_shapes(exported: ExportedProgram) -> None:
+    """Validate that all tensor shapes are static (no SymInt dimensions).
+
+    Raises:
+        ConversionError: If dynamic shapes are detected.
+    """
+    for node in exported.graph_module.graph.nodes:
+        if "val" not in node.meta:
+            continue
+        val = node.meta["val"]
+        tensors = [val] if isinstance(val, torch.Tensor) else []
+        if isinstance(val, (list, tuple)):
+            tensors = [v for v in val if isinstance(v, torch.Tensor)]
+        for tensor in tensors:
+            for dim_size in tensor.shape:
+                if not isinstance(dim_size, int):
+                    raise ConversionError(
+                        f"Dynamic shape detected in node '{node.name}': "
+                        f"shape={tuple(tensor.shape)}. "
+                        f"NPU IR requires static shapes. "
+                        f"Do not pass dynamic_shapes to torch.export.export()."
+                    )
 
 
 def _default_conversion(node_info: NodeInfo) -> OpNode:
@@ -68,6 +92,8 @@ def convert_exported_program(
     Raises:
         ConversionError: If strict mode and unsupported operation encountered.
     """
+    _validate_static_shapes(exported)
+
     analyzer = GraphAnalyzer(exported)
 
     # Extract graph metadata
@@ -78,20 +104,14 @@ def convert_exported_program(
 
     # Convert all call_function nodes
     nodes = []
-    unsupported_ops = []
 
     for node_info in analyzer.get_call_function_nodes():
-        op_type = get_op_type(node_info.target)
-
-        if strict and not is_supported_op(op_type):
-            unsupported_ops.append(op_type)
-            continue
-
         try:
             op_node = convert_node(node_info)
             nodes.append(op_node)
         except Exception as e:
             if strict:
+                op_type = get_op_type(node_info.target)
                 raise ConversionError(
                     f"Failed to convert node '{node_info.name}' with op '{op_type}': {e}"
                 ) from e
@@ -99,12 +119,6 @@ def convert_exported_program(
                 # Use default conversion as fallback
                 op_node = _default_conversion(node_info)
                 nodes.append(op_node)
-
-    if strict and unsupported_ops:
-        raise ConversionError(
-            f"Unsupported operations encountered: {unsupported_ops}\n"
-            "Register custom converters using @register_op decorator."
-        )
 
     return NPU_IR(
         nodes=nodes,

@@ -19,3 +19,6 @@ reports/
 
 # Generated outputs
 examples/*.json
+
+# Claude local
+.claude/settings.local.json
