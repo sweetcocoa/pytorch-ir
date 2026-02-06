@@ -75,26 +75,21 @@ class NodeInfo:
     attrs: Dict[str, Any]           # 추출된 속성
 ```
 
-### 3.3 속성 추출 예시
+### 3.3 속성 자동 추출
+
+`node_info.attrs`에는 OpOverload schema 기반으로 모든 non-Tensor 인자가 자동 추출되어 있습니다. 대부분의 경우 추가 추출 없이 그대로 사용할 수 있습니다:
 
 ```python
 @register_op("aten.my_pool.default")
 def convert_my_pool(node_info: NodeInfo) -> OpNode:
-    # 기본 속성은 node_info.attrs에 있음
-    attrs = dict(node_info.attrs)
-
-    # 추가 속성 추출 (FX args에서)
-    if len(node_info.args) > 1:
-        attrs["kernel_size"] = node_info.args[1]
-    if len(node_info.args) > 2:
-        attrs["stride"] = node_info.args[2]
-
+    # node_info.attrs에 schema 기반 속성이 이미 포함됨
+    # 예: {"kernel_size": 3, "stride": 1, "padding": 0, ...}
     return OpNode(
         name=node_info.name,
         op_type="aten.my_pool.default",
         inputs=node_info.input_metas,
         outputs=node_info.output_metas,
-        attrs=attrs,
+        attrs=node_info.attrs,
     )
 ```
 
@@ -199,21 +194,13 @@ from npu_ir.analyzer import NodeInfo
 @register_op("aten.my_attention.default")
 def convert_my_attention(node_info: NodeInfo) -> OpNode:
     """Convert custom attention to OpNode."""
-    attrs = dict(node_info.attrs)
-
-    # FX args에서 추가 속성 추출
-    # args: (query, key, value, num_heads, dropout_p)
-    if len(node_info.args) > 3:
-        attrs["num_heads"] = node_info.args[3]
-    if len(node_info.args) > 4:
-        attrs["dropout_p"] = node_info.args[4]
-
+    # node_info.attrs에 schema 기반으로 num_heads, dropout_p 등이 자동 포함됨
     return OpNode(
         name=node_info.name,
         op_type="aten.my_attention.default",
         inputs=node_info.input_metas,
         outputs=node_info.output_metas,
-        attrs=attrs,
+        attrs=node_info.attrs,
     )
 
 
