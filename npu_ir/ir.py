@@ -12,13 +12,20 @@ class TensorMeta:
     name: str
     shape: Tuple[int, ...]
     dtype: str  # "float32", "float16", "int8", "bfloat16", etc.
+    # Producer tracking: which node produced this tensor
+    producer_node: Optional[str] = None  # Name of the node that produced this tensor
+    producer_output_idx: int = 0  # Index into producer node's output list
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "name": self.name,
             "shape": list(self.shape),
             "dtype": self.dtype,
         }
+        if self.producer_node is not None:
+            d["producer_node"] = self.producer_node
+            d["producer_output_idx"] = self.producer_output_idx
+        return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TensorMeta":
@@ -26,6 +33,8 @@ class TensorMeta:
             name=data["name"],
             shape=tuple(data["shape"]),
             dtype=data["dtype"],
+            producer_node=data.get("producer_node"),
+            producer_output_idx=data.get("producer_output_idx", 0),
         )
 
 

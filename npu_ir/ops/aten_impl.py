@@ -373,6 +373,9 @@ def execute_add(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
 def execute_sub(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
     """Execute element-wise subtraction operation."""
     alpha = attrs.get("alpha", 1)
+    if len(inputs) < 2:
+        other = attrs.get("other", 0)
+        return [torch.sub(inputs[0], other, alpha=alpha)]
     return [torch.sub(inputs[0], inputs[1], alpha=alpha)]
 
 
@@ -381,6 +384,9 @@ def execute_sub(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
 @register_executor("aten.mul")
 def execute_mul(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
     """Execute element-wise multiplication operation."""
+    if len(inputs) < 2:
+        other = attrs.get("other", 1)
+        return [torch.mul(inputs[0], other)]
     return [torch.mul(inputs[0], inputs[1])]
 
 
@@ -389,6 +395,9 @@ def execute_mul(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
 @register_executor("aten.div")
 def execute_div(inputs: TensorList, attrs: Dict[str, Any]) -> TensorList:
     """Execute element-wise division operation."""
+    if len(inputs) < 2:
+        other = attrs.get("other", 1)
+        return [torch.div(inputs[0], other)]
     return [torch.div(inputs[0], inputs[1])]
 
 

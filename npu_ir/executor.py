@@ -52,24 +52,37 @@ class TensorRegistry:
 def _get_input_tensors(
     node: OpNode,
     registry: TensorRegistry,
+    output_map: Dict[str, List[torch.Tensor]],
 ) -> List[torch.Tensor]:
-    """Get input tensors for a node from the registry."""
+    """Get input tensors for a node using explicit producer references.
+
+    If an input has producer_node set, look up the producer's outputs directly
+    via output_map. Otherwise fall back to registry lookup (for weights and
+    graph inputs that have no producer node).
+    """
     tensors = []
     for input_meta in node.inputs:
-        if input_meta.name in registry:
-            tensors.append(registry[input_meta.name])
-        else:
-            # Try to find tensor with a similar name (for weight matching)
-            found = False
-            for key in registry._tensors.keys():
-                if input_meta.name in key or key in input_meta.name:
-                    tensors.append(registry[key])
-                    found = True
-                    break
-            if not found:
+        if input_meta.producer_node is not None:
+            producer_outputs = output_map.get(input_meta.producer_node)
+            if producer_outputs is None:
                 raise ExecutionError(
-                    f"Input tensor '{input_meta.name}' not found in registry for node '{node.name}'"
+                    f"Producer node '{input_meta.producer_node}' not found in output_map. "
+                    f"Check node ordering. (consumer: '{node.name}')"
                 )
+            if input_meta.producer_output_idx >= len(producer_outputs):
+                raise ExecutionError(
+                    f"Producer '{input_meta.producer_node}' has {len(producer_outputs)} outputs, "
+                    f"but index {input_meta.producer_output_idx} requested by node '{node.name}'."
+                )
+            tensors.append(producer_outputs[input_meta.producer_output_idx])
+        else:
+            # Weight or graph input (no producer node)
+            if input_meta.name not in registry:
+                raise ExecutionError(
+                    f"Weight/input '{input_meta.name}' not found in registry "
+                    f"for node '{node.name}'."
+                )
+            tensors.append(registry[input_meta.name])
     return tensors
 
 
@@ -172,15 +185,25 @@ class IRExecutor:
 
         self._prepare(inputs)
 
+        # Track node outputs by node name for producer-based lookup
+        output_map: Dict[str, List[torch.Tensor]] = {}
+
+        # Register graph inputs in output_map so producer references work
+        for input_meta, tensor in zip(self.ir.graph_inputs, inputs):
+            output_map[input_meta.name] = [tensor]
+
         # Execute nodes in order
         for node in self.ir.nodes:
-            # Gather inputs
-            input_tensors = _get_input_tensors(node, self.registry)
+            # Gather inputs using producer references
+            input_tensors = _get_input_tensors(node, self.registry, output_map)
 
             # Execute node
             output_tensors = _execute_node(node, input_tensors)
 
-            # Register outputs
+            # Store in output_map for downstream producer references
+            output_map[node.name] = output_tensors
+
+            # Also register in registry for backward compat and graph output lookup
             for output_meta, tensor in zip(node.outputs, output_tensors):
                 self.registry.register(output_meta.name, tensor)
 

@@ -111,6 +111,7 @@ class TestRunner:
             # Create model on meta device for IR extraction
             with torch.device("meta"):
                 meta_model = spec.model_class()
+            meta_model.eval()
 
             # Create inputs
             meta_inputs = self._create_meta_inputs(spec)

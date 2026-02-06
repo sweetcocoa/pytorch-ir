@@ -121,8 +121,13 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
         if len(node.args) > 6 and not isinstance(node.args[6], Node):
             attrs["groups"] = node.args[6]
 
+    elif "adaptive" in target_str.lower() and "pool" in target_str.lower():
+        # Adaptive pooling: (input, output_size)
+        if len(node.args) > 1 and not isinstance(node.args[1], Node):
+            attrs["output_size"] = node.args[1]
+
     elif "pool" in target_str.lower():
-        # Pooling ops: kernel_size, stride, padding
+        # Regular pooling: kernel_size, stride, padding
         if len(node.args) > 1 and not isinstance(node.args[1], Node):
             attrs["kernel_size"] = node.args[1]
         if len(node.args) > 2 and not isinstance(node.args[2], Node):
@@ -154,9 +159,16 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
         if len(node.args) > 1 and not isinstance(node.args[1], Node):
             attrs["shape"] = node.args[1]
 
-    elif "permute" in target_str.lower() or "transpose" in target_str.lower():
+    elif "permute" in target_str.lower():
         if len(node.args) > 1 and not isinstance(node.args[1], Node):
             attrs["dims"] = node.args[1]
+
+    elif "transpose" in target_str.lower():
+        # transpose.int: (input, dim0, dim1)
+        if len(node.args) > 1 and not isinstance(node.args[1], Node):
+            attrs["dim0"] = node.args[1]
+        if len(node.args) > 2 and not isinstance(node.args[2], Node):
+            attrs["dim1"] = node.args[2]
 
     elif "split" in target_str.lower():
         if len(node.args) > 1 and not isinstance(node.args[1], Node):
@@ -174,6 +186,14 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
             attrs["start_dim"] = node.args[1]
         if len(node.args) > 2 and not isinstance(node.args[2], Node):
             attrs["end_dim"] = node.args[2]
+
+    # For element-wise binary ops, capture scalar second operand
+    # This handles cases like: div(tensor, 4.0), mul(tensor, 0.5)
+    for pattern in ("div", "mul", "sub", "add", "pow"):
+        if pattern in target_str.lower():
+            if len(node.args) > 1 and not isinstance(node.args[1], Node):
+                attrs.setdefault("other", node.args[1])
+            break
 
     return attrs
 
@@ -202,17 +222,46 @@ class GraphAnalyzer:
         return self._node_outputs.get(node_name, [])
 
     def get_node_input_meta(self, node: Node) -> List[TensorMeta]:
-        """Get input metadata for a node by looking up its input nodes."""
+        """Get input metadata for a node by looking up its input nodes.
+
+        Each returned TensorMeta includes producer_node and producer_output_idx
+        so the executor can resolve inputs via explicit producer references
+        instead of name-based lookup.  Weight/buffer placeholders are left with
+        producer_node=None so the executor falls back to registry lookup.
+        """
+        # Weight/buffer placeholders should NOT get producer tracking —
+        # they are external inputs resolved from the registry, not computed
+        # by a graph node.
+        weight_placeholders = set()
+        weight_placeholders.update(dict(self.graph_signature.inputs_to_parameters).keys())
+        weight_placeholders.update(dict(self.graph_signature.inputs_to_buffers).keys())
+
         input_metas = []
         for arg in node.args:
             if isinstance(arg, Node):
                 metas = self._node_outputs.get(arg.name, [])
-                input_metas.extend(metas)
+                is_weight = arg.name in weight_placeholders
+                for output_idx, meta in enumerate(metas):
+                    input_metas.append(TensorMeta(
+                        name=meta.name,
+                        shape=meta.shape,
+                        dtype=meta.dtype,
+                        producer_node=None if is_weight else arg.name,
+                        producer_output_idx=0 if is_weight else output_idx,
+                    ))
             elif isinstance(arg, (list, tuple)):
                 for a in arg:
                     if isinstance(a, Node):
                         metas = self._node_outputs.get(a.name, [])
-                        input_metas.extend(metas)
+                        is_weight = a.name in weight_placeholders
+                        for output_idx, meta in enumerate(metas):
+                            input_metas.append(TensorMeta(
+                                name=meta.name,
+                                shape=meta.shape,
+                                dtype=meta.dtype,
+                                producer_node=None if is_weight else a.name,
+                                producer_output_idx=0 if is_weight else output_idx,
+                            ))
         return input_metas
 
     def get_graph_inputs(self) -> List[TensorMeta]:
