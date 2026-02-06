@@ -1,13 +1,13 @@
 """IR Builder/Converter - converts ExportedProgram to NPU_IR."""
 
+
 import torch
 from torch.export import ExportedProgram
-from typing import Optional
 
-from .ir import NPU_IR, OpNode, TensorMeta
 from .analyzer import GraphAnalyzer, NodeInfo
-from .ops.registry import get_conversion_fn, is_supported_op
+from .ir import NPU_IR, OpNode
 from .ops.aten_ops import get_op_type
+from .ops.registry import get_conversion_fn, is_supported_op
 
 
 class ConversionError(Exception):

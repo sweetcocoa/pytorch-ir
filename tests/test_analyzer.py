@@ -4,8 +4,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from npu_ir.exporter import export_model
 from npu_ir.analyzer import GraphAnalyzer, _dtype_to_str
+from npu_ir.exporter import export_model
 
 
 class SimpleModel(nn.Module):

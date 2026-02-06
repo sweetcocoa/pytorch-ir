@@ -1,9 +1,11 @@
 """Attention and transformer test models."""
 
 import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from .base import register_model
 
 

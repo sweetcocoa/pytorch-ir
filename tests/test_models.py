@@ -1,6 +1,5 @@
 """Integration tests with real models."""
 
-import pytest
 import torch
 import torch.nn as nn
 
@@ -122,8 +121,6 @@ class TestBatchNorm:
 
         ir = extract_ir(meta_model, inputs, strict=False)
 
-        # Check batch norm is in the ops
-        op_types = [n.op_type for n in ir.nodes]
         # Batch norm might be decomposed in export
         assert len(ir.nodes) >= 3
 

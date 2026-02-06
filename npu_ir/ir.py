@@ -1,8 +1,8 @@
 """IR data structures for NPU compiler."""
 
-from dataclasses import dataclass, field
-from typing import List, Dict, Tuple, Any, Optional
 import json
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass

@@ -5,7 +5,7 @@ import torch
 
 from npu_ir import extract_ir, verify_ir_with_state_dict
 
-from .models import MODEL_REGISTRY, list_models, TestModelSpec
+from .models import MODEL_REGISTRY, TestModelSpec
 from .testing import IRStatistics, TestResult
 
 

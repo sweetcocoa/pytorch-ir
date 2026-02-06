@@ -1,10 +1,10 @@
 """IR Serializer for JSON serialization/deserialization."""
 
 import json
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Union
 
-from .ir import NPU_IR, OpNode, TensorMeta
+from .ir import NPU_IR, TensorMeta
 
 
 class SerializationError(Exception):

@@ -21,7 +21,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from .models import list_models, list_categories, MODEL_REGISTRY
+from .models import MODEL_REGISTRY, list_categories, list_models
 from .testing import TestRunner
 
 

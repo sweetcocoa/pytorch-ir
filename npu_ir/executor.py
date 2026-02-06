@@ -1,12 +1,13 @@
 """IR Executor for running IR graphs with actual weights."""
 
-import torch
-from typing import Dict, List, Tuple, Any, Optional, Union
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
-from .ir import NPU_IR, OpNode, TensorMeta
-from .weight_loader import load_weights, WeightLoader
+import torch
+
+from .ir import NPU_IR, OpNode
 from .ops.registry import get_execution_fn
+from .weight_loader import load_weights
 
 
 class ExecutionError(Exception):

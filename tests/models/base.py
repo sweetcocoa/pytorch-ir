@@ -1,7 +1,8 @@
 """Base classes and registry for test models."""
 
-from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Tuple, Optional
+from dataclasses import dataclass
+from typing import Callable, Dict, List, Optional, Tuple
+
 import torch.nn as nn
 
 

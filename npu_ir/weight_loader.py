@@ -1,10 +1,11 @@
 """Weight loader for .pt and .safetensors files."""
 
-import torch
-from typing import Dict, List, Optional, Union
 from pathlib import Path
+from typing import Dict, List, Optional, Union
 
-from .ir import TensorMeta, NPU_IR
+import torch
+
+from .ir import NPU_IR
 
 
 class WeightLoadError(Exception):
@@ -199,7 +200,7 @@ class WeightLoader:
             errors = validate_weights_against_ir(weights, ir)
             if errors:
                 raise WeightLoadError(
-                    f"Weight validation failed:\n"
+                    "Weight validation failed:\n"
                     + "\n".join(f"  - {e}" for e in errors)
                 )
 
@@ -226,7 +227,7 @@ class WeightLoader:
             errors = validate_weights_against_ir(state_dict, ir)
             if errors:
                 raise WeightLoadError(
-                    f"Weight validation failed:\n"
+                    "Weight validation failed:\n"
                     + "\n".join(f"  - {e}" for e in errors)
                 )
 

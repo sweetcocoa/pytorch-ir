@@ -5,13 +5,12 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import torch
-import torch.nn as nn
 
-from npu_ir import extract_ir, verify_ir_with_state_dict, NPU_IR
+from npu_ir import extract_ir, verify_ir_with_state_dict
 
-from ..models import TestModelSpec, MODEL_REGISTRY, list_models
+from ..models import MODEL_REGISTRY, TestModelSpec, list_models
+from .report import ReportGenerator, TestResult
 from .statistics import IRStatistics
-from .report import TestResult, ReportGenerator
 
 
 class TestRunner:

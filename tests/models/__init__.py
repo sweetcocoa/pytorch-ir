@@ -7,13 +7,9 @@ This module provides test models that cover various computational graph patterns
 - Attention mechanisms
 """
 
-from .base import TestModelSpec, MODEL_REGISTRY, register_model, get_model, list_models, list_categories
-
 # Import model definitions to register them
-from . import multi_io
-from . import skip_connections
-from . import shared_weights
-from . import attention
+from . import attention, multi_io, shared_weights, skip_connections
+from .base import MODEL_REGISTRY, TestModelSpec, get_model, list_categories, list_models, register_model
 
 __all__ = [
     "TestModelSpec",
@@ -22,4 +18,9 @@ __all__ = [
     "get_model",
     "list_models",
     "list_categories",
+    # Side-effect imports (model registration)
+    "attention",
+    "multi_io",
+    "shared_weights",
+    "skip_connections",
 ]

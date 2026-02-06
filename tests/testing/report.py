@@ -3,11 +3,11 @@
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Any
+from typing import List, Optional
 
 from npu_ir import NPU_IR, VerificationReport
 
-from .mermaid import ir_to_mermaid, generate_op_distribution_pie
+from .mermaid import generate_op_distribution_pie, ir_to_mermaid
 from .statistics import IRStatistics
 
 

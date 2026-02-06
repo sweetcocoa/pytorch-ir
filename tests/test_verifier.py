@@ -1,18 +1,19 @@
 """Tests for the IR verifier."""
 
+import os
+import tempfile
+
 import pytest
 import torch
 import torch.nn as nn
-import tempfile
-import os
 
 from npu_ir import extract_ir
 from npu_ir.verifier import (
-    verify_ir,
-    verify_ir_with_state_dict,
     IRVerifier,
     VerificationReport,
     _compare_tensors,
+    verify_ir,
+    verify_ir_with_state_dict,
 )
 
 

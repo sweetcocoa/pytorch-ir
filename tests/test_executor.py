@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 
 from npu_ir import extract_ir
-from npu_ir.executor import IRExecutor, execute_ir, TensorRegistry, ExecutionError
+from npu_ir.executor import ExecutionError, IRExecutor, TensorRegistry, execute_ir
 
 
 class SimpleModel(nn.Module):

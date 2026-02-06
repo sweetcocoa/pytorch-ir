@@ -1,9 +1,9 @@
 """Mermaid diagram generation from NPU IR."""
 
-from typing import Dict, List, Set, Tuple
 from collections import defaultdict
+from typing import Dict, Set, Tuple
 
-from npu_ir import NPU_IR, OpNode
+from npu_ir import NPU_IR
 
 
 def _format_shape(shape: Tuple[int, ...]) -> str:

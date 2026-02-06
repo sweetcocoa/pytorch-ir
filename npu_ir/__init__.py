@@ -27,39 +27,36 @@ Example usage:
     )
 """
 
-import torch
-import torch.nn as nn
-from typing import Tuple, Any, Optional, Dict, Union
-from pathlib import Path
+from typing import Any, Optional, Tuple
 
-from .ir import NPU_IR, OpNode, TensorMeta
-from .exporter import export_model, ExportError, get_model_name
+import torch.nn as nn
+
 from .analyzer import GraphAnalyzer
-from .converter import convert_exported_program, IRConverter, ConversionError
+from .converter import ConversionError, IRConverter, convert_exported_program
+from .executor import ExecutionError, IRExecutor, execute_ir
+from .exporter import ExportError, export_model, get_model_name
+from .ir import NPU_IR, OpNode, TensorMeta
+
+# Import aten ops and implementations to register them
+from .ops import aten_impl, aten_ops
+from .ops.registry import list_registered_ops, register_executor, register_op
 from .serializer import (
-    serialize_ir,
-    deserialize_ir,
-    save_ir,
-    load_ir,
-    validate_ir,
     IRSerializer,
     SerializationError,
+    deserialize_ir,
+    load_ir,
+    save_ir,
+    serialize_ir,
+    validate_ir,
 )
-from .executor import IRExecutor, execute_ir, ExecutionError
+from .verifier import IRVerifier, VerificationReport, verify_ir, verify_ir_with_state_dict
 from .weight_loader import (
+    WeightLoader,
+    WeightLoadError,
     load_weights,
     load_weights_pt,
     load_weights_safetensors,
-    WeightLoader,
-    WeightLoadError,
 )
-from .verifier import verify_ir, verify_ir_with_state_dict, IRVerifier, VerificationReport
-from .ops.registry import register_op, register_executor, list_registered_ops
-
-# Import aten ops and implementations to register them
-from .ops import aten_ops
-from .ops import aten_impl
-
 
 __version__ = "0.1.0"
 
@@ -103,6 +100,12 @@ __all__ = [
     "register_op",
     "register_executor",
     "list_registered_ops",
+    # Re-exports
+    "GraphAnalyzer",
+    "get_model_name",
+    # Side-effect imports (op registration)
+    "aten_ops",
+    "aten_impl",
 ]
 
 

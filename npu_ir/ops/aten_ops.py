@@ -1,8 +1,9 @@
 """ATen operator mappings for IR conversion."""
 
-from typing import Dict, Any, List, Optional
-from ..ir import OpNode, TensorMeta
+from typing import Any, Dict, Optional
+
 from ..analyzer import NodeInfo
+from ..ir import OpNode
 from .registry import register_op
 
 

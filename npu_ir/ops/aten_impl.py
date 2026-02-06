@@ -1,10 +1,11 @@
 """ATen operator implementations for IR execution."""
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import torch
 import torch.nn.functional as F
-from typing import Dict, Any, List, Union, Optional, Tuple
-from .registry import register_executor
 
+from .registry import register_executor
 
 # Type alias for cleaner signatures
 TensorList = List[torch.Tensor]

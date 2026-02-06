@@ -1,11 +1,10 @@
 """Operator registry for IR conversion and execution."""
 
-from typing import Callable, Dict, Any, Optional, TYPE_CHECKING
 from functools import wraps
+from typing import TYPE_CHECKING, Callable, Dict, Optional
 
 if TYPE_CHECKING:
-    from ..ir import OpNode
-    from ..analyzer import NodeInfo
+    pass
 
 
 # Registry for IR conversion functions (ATen op -> OpNode)

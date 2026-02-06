@@ -5,12 +5,12 @@ import torch
 import torch.nn as nn
 
 from npu_ir.exporter import (
-    export_model,
-    is_meta_tensor,
-    is_meta_module,
-    validate_meta_device,
-    validate_inputs_meta,
     ExportError,
+    export_model,
+    is_meta_module,
+    is_meta_tensor,
+    validate_inputs_meta,
+    validate_meta_device,
 )
 
 

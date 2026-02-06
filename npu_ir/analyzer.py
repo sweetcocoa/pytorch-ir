@@ -1,10 +1,11 @@
 """Graph analyzer for extracting metadata from ExportedProgram."""
 
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple
+
 import torch
 from torch.export import ExportedProgram
-from torch.fx import Node, Graph
-from typing import List, Dict, Any, Tuple, Optional, Union
-from dataclasses import dataclass
+from torch.fx import Node
 
 from .ir import TensorMeta
 

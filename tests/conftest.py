@@ -1,10 +1,11 @@
 """Pytest configuration and fixtures for comprehensive testing."""
 
-import pytest
 from pathlib import Path
 from typing import List, Optional
 
-from .testing import TestResult, ReportGenerator
+import pytest
+
+from .testing import ReportGenerator, TestResult
 
 
 def pytest_addoption(parser):

@@ -1,13 +1,14 @@
 """Verifier for comparing original model output vs IR execution output."""
 
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import torch
 import torch.nn as nn
-from typing import Dict, Tuple, Optional, Union, List, Any
-from pathlib import Path
-from dataclasses import dataclass, field
 
+from .executor import execute_ir
 from .ir import NPU_IR
-from .executor import IRExecutor, execute_ir
 from .weight_loader import load_weights
 
 

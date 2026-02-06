@@ -1,9 +1,10 @@
 """Model exporter using torch.export."""
 
+from typing import Any, Tuple
+
 import torch
 import torch.nn as nn
 from torch.export import ExportedProgram
-from typing import Tuple, Any, Optional
 
 
 class ExportError(Exception):
