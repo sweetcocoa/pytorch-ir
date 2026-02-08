@@ -9,7 +9,7 @@ A framework for extracting IR (Intermediate Representation) from PyTorch models 
 - **Complete Metadata**: Automatic extraction of shape and dtype information for all tensors
 - **IR Execution and Verification**: Execute extracted IR and verify identical results with original model
 - **Extensible Design**: Provides custom operator registration mechanism
-- **CLI Tools**: Inspect and visualize IR files from the terminal (`torch-ir info`, `torch-ir visualize`)
+- **CLI Tools**: Inspect and visualize IR files from the terminal (`pytorch-ir info`, `pytorch-ir visualize`)
 
 ## Quick Start
 

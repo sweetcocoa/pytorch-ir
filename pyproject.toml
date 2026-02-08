@@ -1,5 +1,5 @@
 [project]
-name = "torch-ir"
+name = "pytorch-ir"
 dynamic = ["version"]
 description = "PyTorch IR extraction framework for compiler backends"
 readme = "README.md"
@@ -30,7 +30,7 @@ docs = [
 ]
 
 [project.scripts]
-torch-ir = "torch_ir.cli:main"
+pytorch-ir = "torch_ir.cli:main"
 
 [build-system]
 requires = ["hatchling", "hatch-vcs"]

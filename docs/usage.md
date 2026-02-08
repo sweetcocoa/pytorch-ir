@@ -566,19 +566,19 @@ class MyCustomModel(nn.Module):
 
 ## 10. CLI Tools
 
-The `torch-ir` CLI allows you to inspect and visualize IR files directly from the terminal without writing Python code.
+The `pytorch-ir` CLI allows you to inspect and visualize IR files directly from the terminal without writing Python code.
 
 ### 10.1 IR Summary
 
 ```bash
 # Display IR summary
-torch-ir info model_ir.json
+pytorch-ir info model_ir.json
 
 # JSON format output
-torch-ir info model_ir.json --json
+pytorch-ir info model_ir.json --json
 
 # Save to file
-torch-ir info model_ir.json --json -o summary.json
+pytorch-ir info model_ir.json --json -o summary.json
 ```
 
 For example, a DeepResNet model with 3 residual blocks:
@@ -611,17 +611,17 @@ Op distribution:
 
 ```bash
 # Print Mermaid diagram to stdout
-torch-ir visualize model_ir.json
+pytorch-ir visualize model_ir.json
 
 # Save as Mermaid text file
-torch-ir visualize model_ir.json -o graph.mmd
+pytorch-ir visualize model_ir.json -o graph.mmd
 
-# Render as PNG/SVG image (requires: pip install torch-ir[rendering])
-torch-ir visualize model_ir.json -o graph.png
-torch-ir visualize model_ir.json -o graph.svg
+# Render as PNG/SVG image (requires: pip install pytorch-ir[rendering])
+pytorch-ir visualize model_ir.json -o graph.png
+pytorch-ir visualize model_ir.json -o graph.svg
 
 # Limit displayed nodes for large graphs
-torch-ir visualize model_ir.json --max-nodes 50
+pytorch-ir visualize model_ir.json --max-nodes 50
 ```
 
 Below is the actual IR graph of a TransformerBlock (self-attention + FFN + residual connections).

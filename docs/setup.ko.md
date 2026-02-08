@@ -48,7 +48,7 @@ my_compiler/
 
 ```toml
 [project]
-name = "torch-ir"
+name = "pytorch-ir"
 version = "0.1.0"
 description = "PyTorch to NPU IR extraction framework"
 requires-python = ">=3.10"
@@ -69,7 +69,7 @@ safetensors = [
 ]
 
 [project.scripts]
-torch-ir = "torch_ir.cli:main"
+pytorch-ir = "torch_ir.cli:main"
 
 [build-system]
 requires = ["hatchling"]

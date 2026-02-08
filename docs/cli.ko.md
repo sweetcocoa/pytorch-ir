@@ -1,26 +1,26 @@
 # CLI 레퍼런스
 
-`torch-ir`는 Python 코드 작성 없이 터미널에서 IR JSON 파일을 조회하고 시각화할 수 있는 커맨드라인 인터페이스를 제공합니다.
+`pytorch-ir`는 Python 코드 작성 없이 터미널에서 IR JSON 파일을 조회하고 시각화할 수 있는 커맨드라인 인터페이스를 제공합니다.
 
 ## 설치
 
 ```bash
 # 기본 설치
-pip install torch-ir
+pip install pytorch-ir
 
 # 이미지 렌더링 지원 (PNG/SVG)
-pip install torch-ir[rendering]
+pip install pytorch-ir[rendering]
 ```
 
 ## 커맨드
 
-### `torch-ir --version`
+### `pytorch-ir --version`
 
 설치된 버전을 출력합니다.
 
 ```bash
-$ torch-ir --version
-torch-ir 0.1.0
+$ pytorch-ir --version
+pytorch-ir 0.1.0
 ```
 
 Python 모듈로도 실행할 수 있습니다:
@@ -31,14 +31,14 @@ python -m torch_ir --version
 
 ---
 
-### `torch-ir info`
+### `pytorch-ir info`
 
 IR JSON 파일의 요약 정보를 표시합니다: 모델 이름, 노드/입력/출력/weight 수, 총 파라미터 수, shape, 연산자 분포 등.
 
 ```bash
-torch-ir info model.json            # 텍스트 출력
-torch-ir info model.json --json     # JSON 출력
-torch-ir info model.json -o out.txt # 파일 저장
+pytorch-ir info model.json            # 텍스트 출력
+pytorch-ir info model.json --json     # JSON 출력
+pytorch-ir info model.json -o out.txt # 파일 저장
 ```
 
 | 옵션 | 설명 | 기본값 |
@@ -49,16 +49,16 @@ torch-ir info model.json -o out.txt # 파일 저장
 
 ---
 
-### `torch-ir visualize`
+### `pytorch-ir visualize`
 
 IR JSON 파일에서 Mermaid flowchart 다이어그램을 생성합니다.
 
 ```bash
-torch-ir visualize model.json                  # stdout
-torch-ir visualize model.json -o graph.mmd     # Mermaid 파일
-torch-ir visualize model.json -o graph.png     # PNG 이미지
-torch-ir visualize model.json -o graph.svg     # SVG 이미지
-torch-ir visualize model.json --max-nodes 50   # 노드 수 제한
+pytorch-ir visualize model.json                  # stdout
+pytorch-ir visualize model.json -o graph.mmd     # Mermaid 파일
+pytorch-ir visualize model.json -o graph.png     # PNG 이미지
+pytorch-ir visualize model.json -o graph.svg     # SVG 이미지
+pytorch-ir visualize model.json --max-nodes 50   # 노드 수 제한
 ```
 
 | 옵션 | 설명 | 기본값 |
@@ -71,14 +71,14 @@ torch-ir visualize model.json --max-nodes 50   # 노드 수 제한
 이미지 출력(`.png`, `.svg`)은 `rendering` optional dependency가 필요합니다:
 
 ```bash
-pip install torch-ir[rendering]
+pip install pytorch-ir[rendering]
 ```
 
 ---
 
 ## 예제
 
-각 예제는 원본 PyTorch 모델 코드, `torch-ir info --json` 출력, `torch-ir visualize` 그래프를 탭으로 전환하며 확인할 수 있습니다.
+각 예제는 원본 PyTorch 모델 코드, `pytorch-ir info --json` 출력, `pytorch-ir visualize` 그래프를 탭으로 전환하며 확인할 수 있습니다.
 
 ---
 
@@ -100,7 +100,7 @@ pip install torch-ir[rendering]
     )
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -123,7 +123,7 @@ pip install torch-ir[rendering]
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD
@@ -189,7 +189,7 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
             return self.out_proj(out)
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -217,7 +217,7 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD
@@ -312,7 +312,7 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
             return self.classifier(features), self.aux_head(features)
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -341,7 +341,7 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD

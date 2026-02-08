@@ -38,9 +38,9 @@ uv run ruff check torch_ir/ tests/
 uv run ruff check --fix torch_ir/ tests/
 
 # CLI
-uv run torch-ir info model.json          # Show IR summary
-uv run torch-ir visualize model.json     # Mermaid diagram to stdout
-uv run torch-ir visualize model.json -o graph.png  # Render to image
+uv run pytorch-ir info model.json          # Show IR summary
+uv run pytorch-ir visualize model.json     # Mermaid diagram to stdout
+uv run pytorch-ir visualize model.json -o graph.png  # Render to image
 
 # Build package (version derived from git tags via hatch-vcs)
 uv build
@@ -65,7 +65,7 @@ The pipeline flows through these modules in order:
 - **verifier.py** — compares IR execution output against original model output (tolerances: rtol=1e-4, atol=1e-4)
 - **serializer.py** — JSON serialization/deserialization of `IR`
 - **visualize.py** — Mermaid flowchart generation (`ir_to_mermaid`) and op distribution pie charts
-- **cli.py** — `torch-ir` CLI (subcommands: `info`, `visualize`)
+- **cli.py** — `pytorch-ir` CLI (subcommands: `info`, `visualize`)
 
 ### Key Design Decisions
 

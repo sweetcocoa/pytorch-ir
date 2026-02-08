@@ -1,26 +1,26 @@
 # CLI Reference
 
-`torch-ir` provides a command-line interface for inspecting and visualizing IR JSON files without writing Python code.
+`pytorch-ir` provides a command-line interface for inspecting and visualizing IR JSON files without writing Python code.
 
 ## Installation
 
 ```bash
 # Basic installation
-pip install torch-ir
+pip install pytorch-ir
 
 # With image rendering support (PNG/SVG)
-pip install torch-ir[rendering]
+pip install pytorch-ir[rendering]
 ```
 
 ## Commands
 
-### `torch-ir --version`
+### `pytorch-ir --version`
 
 Print the installed version.
 
 ```bash
-$ torch-ir --version
-torch-ir 0.1.0
+$ pytorch-ir --version
+pytorch-ir 0.1.0
 ```
 
 You can also run the CLI as a Python module:
@@ -31,14 +31,14 @@ python -m torch_ir --version
 
 ---
 
-### `torch-ir info`
+### `pytorch-ir info`
 
 Display a summary of an IR JSON file: model name, node/input/output/weight counts, total parameters, shapes, and operator distribution.
 
 ```bash
-torch-ir info model.json            # text output
-torch-ir info model.json --json     # JSON output
-torch-ir info model.json -o out.txt # save to file
+pytorch-ir info model.json            # text output
+pytorch-ir info model.json --json     # JSON output
+pytorch-ir info model.json -o out.txt # save to file
 ```
 
 | Option | Description | Default |
@@ -49,16 +49,16 @@ torch-ir info model.json -o out.txt # save to file
 
 ---
 
-### `torch-ir visualize`
+### `pytorch-ir visualize`
 
 Generate a Mermaid flowchart diagram from an IR JSON file.
 
 ```bash
-torch-ir visualize model.json                  # stdout
-torch-ir visualize model.json -o graph.mmd     # Mermaid file
-torch-ir visualize model.json -o graph.png     # PNG image
-torch-ir visualize model.json -o graph.svg     # SVG image
-torch-ir visualize model.json --max-nodes 50   # limit nodes
+pytorch-ir visualize model.json                  # stdout
+pytorch-ir visualize model.json -o graph.mmd     # Mermaid file
+pytorch-ir visualize model.json -o graph.png     # PNG image
+pytorch-ir visualize model.json -o graph.svg     # SVG image
+pytorch-ir visualize model.json --max-nodes 50   # limit nodes
 ```
 
 | Option | Description | Default |
@@ -71,14 +71,14 @@ torch-ir visualize model.json --max-nodes 50   # limit nodes
 Image output (`.png`, `.svg`) requires the `rendering` optional dependency:
 
 ```bash
-pip install torch-ir[rendering]
+pip install pytorch-ir[rendering]
 ```
 
 ---
 
 ## Examples
 
-Each example shows the original PyTorch model code, `torch-ir info --json` output, and `torch-ir visualize` graph.
+Each example shows the original PyTorch model code, `pytorch-ir info --json` output, and `pytorch-ir visualize` graph.
 
 ---
 
@@ -100,7 +100,7 @@ A 3-layer MLP. The simplest linear graph pattern.
     )
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -123,7 +123,7 @@ A 3-layer MLP. The simplest linear graph pattern.
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD
@@ -189,7 +189,7 @@ Multi-head self-attention (4 heads, d_model=64). The input fans out into 3 paral
             return self.out_proj(out)
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -217,7 +217,7 @@ Multi-head self-attention (4 heads, d_model=64). The input fans out into 3 paral
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD
@@ -312,7 +312,7 @@ A shared CNN backbone that branches into two output heads — classification (10
             return self.classifier(features), self.aux_head(features)
     ```
 
-=== "torch-ir info --json"
+=== "pytorch-ir info --json"
 
     ```json
     {
@@ -341,7 +341,7 @@ A shared CNN backbone that branches into two output heads — classification (10
     }
     ```
 
-=== "torch-ir visualize"
+=== "pytorch-ir visualize"
 
     ```mermaid
     flowchart TD

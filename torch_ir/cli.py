@@ -1,4 +1,4 @@
-"""Command-line interface for torch-ir."""
+"""Command-line interface for pytorch-ir."""
 
 import argparse
 import json
@@ -40,7 +40,7 @@ def _render_mermaid_image(mermaid_text: str, output_path: str) -> None:
         from mmdc import MermaidConverter  # ty: ignore[unresolved-import]
     except ImportError:
         print(
-            "Error: image rendering requires the 'mmdc' package.\nInstall it with: pip install torch-ir[rendering]",
+            "Error: image rendering requires the 'mmdc' package.\nInstall it with: pip install pytorch-ir[rendering]",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -135,9 +135,9 @@ def cmd_info(args: argparse.Namespace) -> None:
 
 
 def create_parser() -> argparse.ArgumentParser:
-    """Create the argument parser for torch-ir CLI."""
-    parser = argparse.ArgumentParser(prog="torch-ir", description="torch-ir CLI tools")
-    parser.add_argument("--version", action="version", version=f"torch-ir {__version__}")
+    """Create the argument parser for pytorch-ir CLI."""
+    parser = argparse.ArgumentParser(prog="pytorch-ir", description="pytorch-ir CLI tools")
+    parser.add_argument("--version", action="version", version=f"pytorch-ir {__version__}")
 
     subparsers = parser.add_subparsers(dest="command")
 

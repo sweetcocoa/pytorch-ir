@@ -1079,6 +1079,51 @@ wheels = [
 ]
 
 [[package]]
+name = "pytorch-ir"
+source = { editable = "." }
+dependencies = [
+    { name = "torch" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "torchvision" },
+    { name = "ty" },
+]
+docs = [
+    { name = "mkdocs" },
+    { name = "mkdocs-material" },
+    { name = "mkdocs-static-i18n" },
+    { name = "mkdocstrings", extra = ["python"] },
+]
+rendering = [
+    { name = "mmdc" },
+]
+safetensors = [
+    { name = "safetensors" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
+    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
+    { name = "mkdocs-static-i18n", marker = "extra == 'docs'", specifier = ">=1.0" },
+    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
+    { name = "mmdc", marker = "extra == 'rendering'", specifier = ">=0.4" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
+    { name = "safetensors", marker = "extra == 'safetensors'", specifier = ">=0.4" },
+    { name = "torch", specifier = ">=2.1" },
+    { name = "torchvision", marker = "extra == 'dev'", specifier = ">=0.16" },
+    { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.15" },
+]
+provides-extras = ["dev", "docs", "rendering", "safetensors"]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1369,51 +1414,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1d/b9/5f6f9d9e859fc3235f60578fa64f52c9c6e9b4327f0fe0defb6de5c0de31/torch-2.10.0-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:d8f5912ba938233f86361e891789595ff35ca4b4e2ac8fe3670895e5976731d6", size = 915613050, upload-time = "2026-01-21T16:20:49.035Z" },
     { url = "https://files.pythonhosted.org/packages/66/4d/35352043ee0eaffdeff154fad67cd4a31dbed7ff8e3be1cc4549717d6d51/torch-2.10.0-cp314-cp314t-win_amd64.whl", hash = "sha256:71283a373f0ee2c89e0f0d5f446039bdabe8dbc3c9ccf35f0f784908b0acd185", size = 113995816, upload-time = "2026-01-21T16:22:05.312Z" },
 ]
-
-[[package]]
-name = "torch-ir"
-source = { editable = "." }
-dependencies = [
-    { name = "torch" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "torchvision" },
-    { name = "ty" },
-]
-docs = [
-    { name = "mkdocs" },
-    { name = "mkdocs-material" },
-    { name = "mkdocs-static-i18n" },
-    { name = "mkdocstrings", extra = ["python"] },
-]
-rendering = [
-    { name = "mmdc" },
-]
-safetensors = [
-    { name = "safetensors" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "mkdocs", marker = "extra == 'docs'", specifier = ">=1.6" },
-    { name = "mkdocs-material", marker = "extra == 'docs'", specifier = ">=9.5" },
-    { name = "mkdocs-static-i18n", marker = "extra == 'docs'", specifier = ">=1.0" },
-    { name = "mkdocstrings", extras = ["python"], marker = "extra == 'docs'", specifier = ">=0.27" },
-    { name = "mmdc", marker = "extra == 'rendering'", specifier = ">=0.4" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.4" },
-    { name = "safetensors", marker = "extra == 'safetensors'", specifier = ">=0.4" },
-    { name = "torch", specifier = ">=2.1" },
-    { name = "torchvision", marker = "extra == 'dev'", specifier = ">=0.16" },
-    { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.15" },
-]
-provides-extras = ["dev", "docs", "rendering", "safetensors"]
 
 [[package]]
 name = "torchvision"

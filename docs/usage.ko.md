@@ -566,19 +566,19 @@ class MyCustomModel(nn.Module):
 
 ## 10. CLI 도구
 
-`torch-ir` CLI를 사용하면 Python 코드 작성 없이 터미널에서 IR 파일을 조회하고 시각화할 수 있습니다.
+`pytorch-ir` CLI를 사용하면 Python 코드 작성 없이 터미널에서 IR 파일을 조회하고 시각화할 수 있습니다.
 
 ### 10.1 IR 요약 정보
 
 ```bash
 # IR 요약 표시
-torch-ir info model_ir.json
+pytorch-ir info model_ir.json
 
 # JSON 형식 출력
-torch-ir info model_ir.json --json
+pytorch-ir info model_ir.json --json
 
 # 파일로 저장
-torch-ir info model_ir.json --json -o summary.json
+pytorch-ir info model_ir.json --json -o summary.json
 ```
 
 예를 들어, 3개의 잔차 블록을 가진 DeepResNet 모델의 IR 요약:
@@ -611,17 +611,17 @@ Op distribution:
 
 ```bash
 # Mermaid 다이어그램을 stdout으로 출력
-torch-ir visualize model_ir.json
+pytorch-ir visualize model_ir.json
 
 # Mermaid 텍스트 파일로 저장
-torch-ir visualize model_ir.json -o graph.mmd
+pytorch-ir visualize model_ir.json -o graph.mmd
 
-# PNG/SVG 이미지로 렌더링 (필요: pip install torch-ir[rendering])
-torch-ir visualize model_ir.json -o graph.png
-torch-ir visualize model_ir.json -o graph.svg
+# PNG/SVG 이미지로 렌더링 (필요: pip install pytorch-ir[rendering])
+pytorch-ir visualize model_ir.json -o graph.png
+pytorch-ir visualize model_ir.json -o graph.svg
 
 # 대규모 그래프의 표시 노드 수 제한
-torch-ir visualize model_ir.json --max-nodes 50
+pytorch-ir visualize model_ir.json --max-nodes 50
 ```
 
 아래는 TransformerBlock (self-attention + FFN + residual connections) 모델의 실제 IR 그래프입니다.
