@@ -1372,7 +1372,6 @@ wheels = [
 
 [[package]]
 name = "torch-ir"
-version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "torch" },
@@ -1414,7 +1413,7 @@ requires-dist = [
     { name = "torchvision", marker = "extra == 'dev'", specifier = ">=0.16" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.15" },
 ]
-provides-extras = ["dev", "rendering", "safetensors", "docs"]
+provides-extras = ["dev", "docs", "rendering", "safetensors"]
 
 [[package]]
 name = "torchvision"

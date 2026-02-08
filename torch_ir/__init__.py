@@ -59,7 +59,10 @@ from .weight_loader import (
     load_weights_safetensors,
 )
 
-__version__ = "0.1.0"
+try:
+    from torch_ir._version import __version__
+except ModuleNotFoundError:
+    __version__ = "0.0.0"
 
 __all__ = [
     # Main API

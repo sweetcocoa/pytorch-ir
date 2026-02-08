@@ -5,6 +5,9 @@ __pycache__/
 dist/
 build/
 
+# Auto-generated version file (hatch-vcs)
+torch_ir/_version.py
+
 # Virtual environments
 .venv/
 

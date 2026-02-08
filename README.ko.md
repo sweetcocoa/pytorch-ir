@@ -1,22 +1,22 @@
-[한국어](README.ko.md)
+[English](README.md)
 
 # IR Extraction Framework
 
-A framework for extracting compiler-backend IR (Intermediate Representation) from PyTorch models.
+PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
 
-## Quick Start
+## 빠른 시작
 
-### Installation
+### 설치
 
 ```bash
-# Using uv (recommended)
+# uv 사용 (권장)
 uv sync
 
-# Or using pip
+# 또는 pip 사용
 pip install -e .
 ```
 
-### Basic Usage
+### 기본 사용법
 
 ```python
 import torch
@@ -33,25 +33,25 @@ class SimpleMLP(nn.Module):
     def forward(self, x):
         return self.fc2(self.relu(self.fc1(x)))
 
-# 1. Create model on meta device (no actual weights loaded)
+# 1. Meta device에서 모델 생성 (실제 weight 로드 없음)
 with torch.device('meta'):
     model = SimpleMLP()
 model.eval()
 
-# 2. Extract IR
+# 2. IR 추출
 example_inputs = (torch.randn(1, 4, device='meta'),)
 ir = extract_ir(model, example_inputs)
 
-# 3. Save IR
+# 3. IR 저장
 ir.save("model_ir.json")
 
-# 4. Visualize IR
+# 4. IR 시각화
 print(ir_to_mermaid(ir))
 ```
 
-### Extracted IR
+### 추출된 IR
 
-The IR above produces the following JSON. Each node records its ATen op type, input/output tensor metadata, and producer-consumer relationships — weight values are not included.
+위 모델에서 추출된 IR은 다음과 같은 JSON으로 직렬화됩니다. 각 노드에는 ATen 연산 타입, 입출력 텐서 메타데이터, producer-consumer 관계가 기록되며 weight 값은 포함되지 않습니다.
 
 ```json
 {
@@ -84,9 +84,9 @@ The IR above produces the following JSON. Each node records its ATen op type, in
 }
 ```
 
-### IR Visualization
+### IR 시각화
 
-`ir_to_mermaid()` renders the IR as a Mermaid flowchart (weight edges are omitted for clarity):
+`ir_to_mermaid()`는 IR을 Mermaid 플로우차트로 렌더링합니다 (weight 엣지는 생략):
 
 ```mermaid
 flowchart TD
@@ -101,10 +101,10 @@ flowchart TD
     op_linear_1 --> output_0
 ```
 
-### Verification
+### IR 검증
 
 ```python
-# Compare original model output with IR execution result
+# 원본 모델과 IR 실행 결과 비교
 original_model = SimpleMLP()
 original_model.load_state_dict(torch.load('weights.pt'))
 original_model.eval()
@@ -120,49 +120,49 @@ is_valid, report = verify_ir_with_state_dict(
 print(f"Verification: {'PASSED' if is_valid else 'FAILED'}")
 ```
 
-## Documentation
+## 문서
 
-- [Concepts & Architecture](docs/concepts.md) - Core concepts and design of the framework
-- [Setup](docs/setup.md) - Installation and development environment configuration
-- [Usage Guide](docs/usage.md) - Detailed usage and examples
-- [API Reference](docs/api/index.md) - Public API documentation
-- [Operator Support](docs/operators.md) - Supported ATen operators
-- [Extension Guide](docs/extending.md) - How to add custom operators
+- [개념 및 아키텍처](docs/concepts.md) - 프레임워크의 핵심 개념과 설계
+- [환경 설정](docs/setup.md) - 설치 및 개발 환경 구성
+- [사용 가이드](docs/usage.md) - 상세 사용법과 예제
+- [API 레퍼런스](docs/api/index.md) - 공개 API 문서
+- [연산자 지원](docs/operators.md) - 지원되는 ATen 연산자 목록
+- [확장 가이드](docs/extending.md) - 커스텀 연산자 추가 방법
 
-## Dependencies
+## 의존성
 
 - Python >= 3.10
 - PyTorch >= 2.1
 
-## Running Tests
+## 테스트 실행
 
 ```bash
-# Basic tests
+# 기본 테스트
 uv run pytest tests/ -v
 
-# Comprehensive tests (all test models)
+# 종합 테스트 (모든 테스트 모델)
 uv run pytest tests/test_comprehensive.py -v
 
-# Generate reports
+# 리포트 생성
 uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
 
-# Filter by category
+# 카테고리별 필터
 uv run pytest tests/test_comprehensive.py -k "attention" -v
 
-# Run via CLI
+# CLI로 실행
 uv run python -m tests --output reports/
 uv run python -m tests --list-models
 uv run python -m tests --category attention
 ```
 
-## Features
+## 주요 특징
 
-- **Weight-free extraction**: Uses meta tensors to extract only graph structure without loading actual weights into memory
-- **torch.export based**: Uses TorchDynamo-based tracing, the officially recommended PyTorch approach
-- **Complete metadata**: Automatically extracts shape and dtype information for all tensors
-- **IR execution & verification**: Execute the extracted IR and verify results match the original model
-- **Extensible design**: Provides a custom operator registration mechanism
+- **Weight-free 추출**: Meta tensor를 활용하여 실제 weight를 메모리에 로드하지 않고 그래프 구조만 추출
+- **torch.export 기반**: PyTorch 공식 권장 방식인 TorchDynamo 기반 tracing 사용
+- **완전한 메타데이터**: 모든 텐서의 shape, dtype 정보 자동 추출
+- **IR 실행 및 검증**: 추출된 IR을 실행하여 원본 모델과 동일한 결과 검증 가능
+- **확장 가능한 설계**: 커스텀 연산자 등록 메커니즘 제공
 
-## License
+## 라이선스
 
 MIT License

@@ -1,7 +1,8 @@
 [project]
 name = "torch-ir"
-version = "0.1.0"
+dynamic = ["version"]
 description = "PyTorch IR extraction framework for compiler backends"
+readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.1",
@@ -32,8 +33,14 @@ docs = [
 torch-ir = "torch_ir.cli:main"
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "torch_ir/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["torch_ir"]
