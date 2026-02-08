@@ -39,6 +39,10 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 source = "vcs"
 
+# PyPI rejects local version segments (+g<hash>), so strip them
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
 [tool.hatch.build.hooks.vcs]
 version-file = "torch_ir/_version.py"
 
