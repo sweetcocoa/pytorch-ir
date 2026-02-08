@@ -19,12 +19,37 @@ theme:
         name: 라이트 모드로 전환
   features:
     - content.code.copy
+    - content.tabs.link
     - navigation.sections
     - navigation.expand
     - search.highlight
 
 plugins:
   - search
+  - i18n:
+      docs_structure: suffix
+      fallback_to_default: true
+      languages:
+        - locale: ko
+          default: true
+          name: 한국어
+          build: true
+        - locale: en
+          name: English
+          build: true
+          nav_translations:
+            Home: Home
+            가이드: Guide
+            개념 및 아키텍처: Concepts & Architecture
+            환경 설정: Setup
+            사용 가이드: Usage Guide
+            연산자 지원: Operator Support
+            확장 가이드: Extension Guide
+            예제: Example
+            API 레퍼런스: API Reference
+            개요: Overview
+            IR 데이터 구조: IR Data Structures
+            Visualize: Visualize
   - mkdocstrings:
       handlers:
         python:
@@ -41,10 +66,16 @@ plugins:
 markdown_extensions:
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
   - toc:
       permalink: true
 
@@ -56,6 +87,7 @@ nav:
       - 사용 가이드: usage.md
       - 연산자 지원: operators.md
       - 확장 가이드: extending.md
+  - 예제: example.md
   - API 레퍼런스:
       - 개요: api/index.md
       - IR 데이터 구조: api/ir.md
@@ -66,3 +98,4 @@ nav:
       - Verifier: api/verifier.md
       - Weight Loader: api/weight_loader.md
       - Ops: api/ops.md
+      - Visualize: api/visualize.md

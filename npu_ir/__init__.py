@@ -50,6 +50,7 @@ from .serializer import (
     validate_ir,
 )
 from .verifier import IRVerifier, VerificationReport, verify_ir, verify_ir_with_state_dict
+from .visualize import generate_op_distribution_pie, ir_to_mermaid
 from .weight_loader import (
     WeightLoader,
     WeightLoadError,
@@ -103,6 +104,9 @@ __all__ = [
     # Re-exports
     "GraphAnalyzer",
     "get_model_name",
+    # Visualization
+    "ir_to_mermaid",
+    "generate_op_distribution_pie",
     # Side-effect imports (op registration)
     "aten_ops",
     "aten_impl",

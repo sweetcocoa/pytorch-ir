@@ -103,67 +103,26 @@ class NPU_IR:
 
 ### 3.1 IR 추출 파이프라인
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    사용자 API                            │
-│  extract_ir(model, example_inputs) → NPU_IR             │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Model Exporter (exporter.py)               │
-│  - Meta device 검증                                     │
-│  - torch.export.export() 호출                           │
-│  - ExportedProgram 획득                                 │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              Graph Analyzer (analyzer.py)               │
-│  - ExportedProgram.graph 순회                           │
-│  - 각 노드의 shape/dtype 메타데이터 추출                 │
-│  - graph_signature에서 입출력/파라미터 정보 획득         │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              IR Converter (converter.py)                │
-│  - FX node → OpNode 변환                                │
-│  - ATen op → NPU IR op 매핑                             │
-│  - 연산자 속성 추출                                     │
-└─────────────────────────────────────────────────────────┘
-                          │
-                          ▼
-┌─────────────────────────────────────────────────────────┐
-│              IR Serializer (serializer.py)              │
-│  - JSON 직렬화                                          │
-│  - 검증 및 출력                                         │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["사용자 API\nextract_ir(model, example_inputs) → NPU_IR"]
+    B["Model Exporter (exporter.py)\nMeta device 검증 · torch.export.export() 호출"]
+    C["Graph Analyzer (analyzer.py)\n그래프 순회 · shape/dtype 메타데이터 추출"]
+    D["IR Converter (converter.py)\nFX node → OpNode 변환 · 연산자 속성 추출"]
+    E["IR Serializer (serializer.py)\nJSON 직렬화 · 검증 및 출력"]
+    A --> B --> C --> D --> E
 ```
 
 ### 3.2 IR 실행 및 검증 파이프라인
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    검증 API                              │
-│  verify_ir(ir, weights, original_model, inputs) → bool  │
-└─────────────────────────────────────────────────────────┘
-                          │
-        ┌─────────────────┴─────────────────┐
-        ▼                                   ▼
-┌───────────────────────┐     ┌───────────────────────────┐
-│   원본 모델 실행       │     │     IR 실행               │
-│   (PyTorch forward)   │     │   (IR Executor)           │
-└───────────────────────┘     └───────────────────────────┘
-        │                                   │
-        │     ┌─────────────────────────────┘
-        │     │
-        ▼     ▼
-┌─────────────────────────────────────────────────────────┐
-│              Output Verifier (verifier.py)              │
-│  - torch.allclose() 기반 비교                           │
-│  - 오차 리포트 생성                                     │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    A["검증 API\nverify_ir(ir, weights, original_model, inputs) → bool"]
+    B["원본 모델 실행\n(PyTorch forward)"]
+    C["IR 실행\n(IR Executor)"]
+    D["Output Verifier (verifier.py)\ntorch.allclose() 기반 비교 · 오차 리포트 생성"]
+    A --> B & C
+    B & C --> D
 ```
 
 ### 3.3 컴포넌트 설명
