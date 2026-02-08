@@ -566,6 +566,6 @@ class MyCustomModel(nn.Module):
 
 ## 10. 다음 단계
 
-- [API 레퍼런스](api.md) - 상세 API 문서
+- [API 레퍼런스](api/index.md) - 상세 API 문서
 - [연산자 지원](operators.md) - 지원되는 연산자 목록
 - [확장 가이드](extending.md) - 커스텀 연산자 추가

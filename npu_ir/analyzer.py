@@ -12,16 +12,27 @@ from .ir import TensorMeta
 
 @dataclass
 class NodeInfo:
-    """Extracted information from an FX node."""
+    """Extracted information from an FX node.
+
+    Attributes:
+        name: Node name from the FX graph.
+        op: FX node operation type (``"call_function"``, ``"placeholder"``, ``"output"``, ``"get_attr"``).
+        target: The operation target (e.g., ``torch.ops.aten.conv2d.default``).
+        args: Raw positional arguments from the FX node.
+        kwargs: Raw keyword arguments from the FX node.
+        input_metas: Metadata of input tensors with producer tracking information.
+        output_metas: Metadata of output tensors inferred from ``node.meta["val"]``.
+        attrs: Operation attributes extracted via schema introspection (e.g., ``kernel_size``, ``stride``).
+    """
 
     name: str
-    op: str  # "call_function", "placeholder", "output", "get_attr"
-    target: Any  # The operation (e.g., torch.ops.aten.conv2d.default)
+    op: str
+    target: Any
     args: Tuple[Any, ...]
     kwargs: Dict[str, Any]
-    input_metas: List[TensorMeta]  # Metadata of input tensors
-    output_metas: List[TensorMeta]  # Metadata of output tensors
-    attrs: Dict[str, Any]  # Operation attributes (kernel_size, stride, etc.)
+    input_metas: List[TensorMeta]
+    output_metas: List[TensorMeta]
+    attrs: Dict[str, Any]
 
 
 def _dtype_to_str(dtype: torch.dtype) -> str:
@@ -332,7 +343,6 @@ class GraphAnalyzer:
         for node in self.graph.nodes:
             if node.op == "call_function":
                 target = node.target
-                target_str = str(target)
 
                 input_metas = self.get_node_input_meta(node)
                 output_metas = self._node_outputs.get(node.name, [])

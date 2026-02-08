@@ -14,12 +14,26 @@ class ExportError(Exception):
 
 
 def is_meta_tensor(tensor: torch.Tensor) -> bool:
-    """Check if a tensor is on meta device."""
+    """Check if a tensor is on the meta device.
+
+    Args:
+        tensor: The tensor to check.
+
+    Returns:
+        ``True`` if the tensor's device type is ``"meta"``.
+    """
     return tensor.device.type == "meta"
 
 
 def is_meta_module(module: nn.Module) -> bool:
-    """Check if a module has all parameters on meta device."""
+    """Check if a module has all parameters and buffers on meta device.
+
+    Args:
+        module: The PyTorch module to check.
+
+    Returns:
+        ``True`` if every parameter and buffer is on the meta device.
+    """
     for param in module.parameters():
         if not is_meta_tensor(param):
             return False

@@ -1,0 +1,68 @@
+site_name: NPU IR Extraction Framework
+site_description: PyTorch 모델에서 NPU 컴파일러용 IR을 추출하는 프레임워크
+repo_url: https://github.com/example/torch_to_ir
+repo_name: torch_to_ir
+
+theme:
+  name: material
+  language: ko
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: 다크 모드로 전환
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: 라이트 모드로 전환
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            show_source: true
+            show_signature_annotations: true
+            separate_signature: true
+            members_order: source
+            merge_init_into_class: true
+            show_root_heading: true
+            show_root_full_path: false
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - 가이드:
+      - 개념 및 아키텍처: concepts.md
+      - 환경 설정: setup.md
+      - 사용 가이드: usage.md
+      - 연산자 지원: operators.md
+      - 확장 가이드: extending.md
+  - API 레퍼런스:
+      - 개요: api/index.md
+      - IR 데이터 구조: api/ir.md
+      - Exporter: api/exporter.md
+      - Converter: api/converter.md
+      - Executor: api/executor.md
+      - Serializer: api/serializer.md
+      - Verifier: api/verifier.md
+      - Weight Loader: api/weight_loader.md
+      - Ops: api/ops.md

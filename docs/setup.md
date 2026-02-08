@@ -1,118 +1,13 @@
 # 환경 설정
 
-이 문서는 NPU IR 프레임워크의 설치 및 개발 환경 구성 방법을 설명합니다.
+이 문서는 NPU IR 프레임워크의 개발 환경 구성 방법을 설명합니다.
 
-## 1. 요구 사항
+!!! note
+    기본 설치 방법은 [Home](index.md)을 참고하세요.
 
-### 1.1 시스템 요구 사항
+## 1. 개발 환경 구성
 
-- **Python**: 3.10 이상
-- **운영체제**: Linux, macOS, Windows
-- **메모리**: 최소 4GB RAM (대규모 모델 IR 추출 시 더 필요할 수 있음)
-
-### 1.2 의존성
-
-**필수 의존성:**
-- `torch >= 2.1`
-
-**개발 의존성:**
-- `pytest >= 8.0`
-- `torchvision >= 0.16` (테스트용)
-
-**선택적 의존성:**
-- `safetensors >= 0.4` (.safetensors 파일 지원)
-
-## 2. 설치
-
-### 2.1 uv 사용 (권장)
-
-[uv](https://github.com/astral-sh/uv)는 빠른 Python 패키지 관리자입니다.
-
-```bash
-# uv 설치 (아직 없는 경우)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# 프로젝트 클론
-git clone <repository-url>
-cd my_compiler
-
-# 의존성 설치 및 가상환경 생성
-uv sync
-
-# 개발 의존성 포함 설치
-uv sync --dev
-```
-
-### 2.2 pip 사용
-
-```bash
-# 프로젝트 클론
-git clone <repository-url>
-cd my_compiler
-
-# 가상환경 생성 (권장)
-python -m venv .venv
-source .venv/bin/activate  # Linux/macOS
-# 또는
-.venv\Scripts\activate     # Windows
-
-# 패키지 설치
-pip install -e .
-
-# 개발 의존성 포함 설치
-pip install -e ".[dev]"
-```
-
-### 2.3 safetensors 지원 설치
-
-```bash
-# uv 사용
-uv add safetensors
-
-# 또는 pip 사용
-pip install safetensors
-```
-
-## 3. 설치 확인
-
-### 3.1 기본 동작 확인
-
-```python
-import torch
-from npu_ir import extract_ir
-
-# 간단한 모델 테스트
-with torch.device('meta'):
-    model = torch.nn.Linear(10, 5)
-
-inputs = (torch.randn(1, 10, device='meta'),)
-ir = extract_ir(model, inputs, strict=False)
-
-print(f"Nodes: {len(ir.nodes)}")
-print(f"Weights: {len(ir.weights)}")
-```
-
-출력 예시:
-```
-Nodes: 1
-Weights: 2
-```
-
-### 3.2 테스트 실행
-
-```bash
-# uv 사용
-uv run pytest tests/ -v
-
-# 또는 직접 실행
-pytest tests/ -v
-```
-
-모든 테스트가 통과하면 설치가 올바르게 완료된 것입니다.
-
-## 4. 개발 환경 구성
-
-### 4.1 프로젝트 구조
+### 1.1 프로젝트 구조
 
 ```
 my_compiler/
@@ -146,7 +41,7 @@ my_compiler/
 └── README.md
 ```
 
-### 4.2 pyproject.toml
+### 1.2 pyproject.toml
 
 ```toml
 [project]
@@ -177,7 +72,7 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 ```
 
-### 4.3 IDE 설정
+### 1.3 IDE 설정
 
 #### VS Code
 
@@ -197,9 +92,9 @@ python_functions = ["test_*"]
 2. `.venv` 가상환경 선택
 3. Run → Edit Configurations → pytest 추가
 
-## 5. 문제 해결
+## 2. 문제 해결
 
-### 5.1 torch.export 오류
+### 2.1 torch.export 오류
 
 **증상**: `torch.export.export()` 호출 시 오류
 
@@ -213,7 +108,7 @@ print(torch.__version__)  # 2.1.0 이상이어야 함
 from torch.export import export
 ```
 
-### 5.2 Meta device 오류
+### 2.2 Meta device 오류
 
 **증상**: `RuntimeError: meta tensors are not supported`
 
@@ -228,7 +123,7 @@ model = MyModel()
 model = model.to('meta')
 ```
 
-### 5.3 Import 오류
+### 2.3 Import 오류
 
 **증상**: `ModuleNotFoundError: No module named 'npu_ir'`
 
@@ -241,7 +136,7 @@ pip install -e .
 python -c "import sys; print(sys.path)"
 ```
 
-### 5.4 NumPy 경고
+### 2.4 NumPy 경고
 
 **증상**: `UserWarning: Failed to initialize NumPy`
 
@@ -251,18 +146,18 @@ python -c "import sys; print(sys.path)"
 pip install numpy
 ```
 
-## 6. GPU 환경 (선택사항)
+## 3. GPU 환경 (선택사항)
 
 IR 추출은 meta device만 사용하므로 GPU가 필수는 아닙니다. 그러나 검증 시 GPU를 사용하면 속도가 향상됩니다.
 
-### 6.1 CUDA 환경
+### 3.1 CUDA 환경
 
 ```bash
 # CUDA 버전에 맞는 PyTorch 설치
 pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
-### 6.2 GPU 검증
+### 3.2 GPU 검증
 
 ```python
 import torch
@@ -270,10 +165,10 @@ print(f"CUDA available: {torch.cuda.is_available()}")
 print(f"CUDA version: {torch.version.cuda}")
 ```
 
-## 7. 다음 단계
+## 4. 다음 단계
 
 환경 설정이 완료되면:
 
 1. [사용 가이드](usage.md)를 읽고 기본 사용법 학습
 2. [examples/](../examples/) 디렉토리의 예제 실행
-3. [API 레퍼런스](api.md)에서 상세 API 확인
+3. [API 레퍼런스](api/index.md)에서 상세 API 확인

@@ -29,7 +29,6 @@ Example usage:
 
 from typing import Any, Optional, Tuple
 
-import torch
 import torch.nn as nn
 
 from .analyzer import GraphAnalyzer

@@ -7,7 +7,16 @@ from ..ir import OpNode
 
 
 def _normalize_op_type(target: Any) -> str:
-    """Normalize the operator type to a standard string format."""
+    """Normalize the operator type to a standard ``aten.<op>.<overload>`` string format.
+
+    Handles both ``torch.ops.aten.*`` and ``aten::*`` input formats.
+
+    Args:
+        target: The FX node target (function object or string).
+
+    Returns:
+        Normalized op type string (e.g., ``"aten.conv2d.default"``).
+    """
     target_str = str(target)
 
     # Handle torch.ops.aten.* format
@@ -28,7 +37,16 @@ def _create_op_node(
     op_type: Optional[str] = None,
     extra_attrs: Optional[Dict[str, Any]] = None,
 ) -> OpNode:
-    """Helper to create an OpNode from NodeInfo."""
+    """Create an ``OpNode`` from analyzed ``NodeInfo``.
+
+    Args:
+        node_info: Analyzed FX node information.
+        op_type: Override op type string. Uses ``_normalize_op_type`` if ``None``.
+        extra_attrs: Additional attributes to merge into the node's attrs.
+
+    Returns:
+        Constructed ``OpNode`` instance.
+    """
     final_op_type = op_type or _normalize_op_type(node_info.target)
 
     attrs = dict(node_info.attrs)

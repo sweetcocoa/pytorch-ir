@@ -17,25 +17,29 @@ class ExecutionError(Exception):
 
 
 class TensorRegistry:
-    """Manages tensor storage during IR execution."""
+    """Name-to-tensor mapping used during IR execution.
+
+    Stores weights, graph inputs, and intermediate results so that
+    each node can retrieve its input tensors by name.
+    """
 
     def __init__(self):
         self._tensors: Dict[str, torch.Tensor] = {}
 
     def register(self, name: str, tensor: torch.Tensor) -> None:
-        """Register a tensor with a name."""
+        """Register a tensor under the given name."""
         self._tensors[name] = tensor
 
     def get(self, name: str) -> Optional[torch.Tensor]:
-        """Get a tensor by name."""
+        """Return the tensor for *name*, or ``None`` if not found."""
         return self._tensors.get(name)
 
     def has(self, name: str) -> bool:
-        """Check if a tensor is registered."""
+        """Return ``True`` if *name* is registered."""
         return name in self._tensors
 
     def clear(self) -> None:
-        """Clear all registered tensors."""
+        """Remove all registered tensors."""
         self._tensors.clear()
 
     def __getitem__(self, name: str) -> torch.Tensor:
@@ -137,7 +141,23 @@ def _aten_fallback(
     node: OpNode,
     inputs: List[torch.Tensor],
 ) -> List[torch.Tensor]:
-    """Fallback: call the original ATen op directly via torch.ops.aten."""
+    """Execute an ATen op by introspecting its schema and calling ``torch.ops.aten.*``.
+
+    This is the core fallback strategy that enables automatic execution of any
+    ATen operator without manual implementation.  The schema is used to
+    reconstruct positional and keyword arguments from the flat tensor list
+    and the node's ``attrs`` dictionary.
+
+    Args:
+        node: The IR node to execute.
+        inputs: Flat list of input tensors resolved from producer references.
+
+    Returns:
+        List of output tensors produced by the operation.
+
+    Raises:
+        ExecutionError: If the op cannot be resolved or execution fails.
+    """
     aten_fn = _resolve_aten_op(node.op_type)
     if aten_fn is None:
         raise ExecutionError(f"No execution function registered for op_type '{node.op_type}'\nNode: {node.name}")
@@ -253,8 +273,19 @@ def _execute_node(
     """Execute a single node and return outputs.
 
     Strategy:
-    1. If a custom executor is registered, use it (for non-ATen ops like getitem).
-    2. Otherwise, call the original ATen op directly via torch.ops.aten.
+
+    1. If a custom executor is registered, use it (for non-ATen ops like ``getitem``).
+    2. Otherwise, call the original ATen op directly via ``_aten_fallback``.
+
+    Args:
+        node: The IR node to execute.
+        inputs: Input tensors for this node.
+
+    Returns:
+        List of output tensors.
+
+    Raises:
+        ExecutionError: If execution fails.
     """
     # Custom executor takes priority (needed for non-ATen ops like getitem)
     execution_fn = get_execution_fn(node.op_type)
@@ -274,7 +305,14 @@ def _execute_node(
 
 
 class IRExecutor:
-    """Executes an IR graph with weights."""
+    """Executes an IR graph with actual weight tensors.
+
+    Typical usage::
+
+        executor = IRExecutor(ir)
+        executor.load_weights_from_state_dict(state_dict)
+        outputs = executor.execute((input_tensor,))
+    """
 
     def __init__(self, ir: NPU_IR, weights: Optional[Dict[str, torch.Tensor]] = None):
         """Initialize the executor.

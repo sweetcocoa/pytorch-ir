@@ -120,14 +120,17 @@ def validate_weights_against_ir(
     weights: Dict[str, torch.Tensor],
     ir: NPU_IR,
 ) -> List[str]:
-    """Validate that weights match the IR weight metadata.
+    """Validate that loaded weights match the IR weight metadata.
+
+    Checks for missing weights and shape/dtype mismatches between the loaded
+    tensors and the metadata recorded during IR extraction.
 
     Args:
-        weights: Loaded weight dictionary.
+        weights: Loaded weight dictionary (``state_dict``).
         ir: The IR containing weight metadata.
 
     Returns:
-        List of validation errors (empty if all valid).
+        List of human-readable validation error strings. Empty when all weights match.
     """
     errors = []
 

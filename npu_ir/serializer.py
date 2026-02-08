@@ -144,17 +144,31 @@ def validate_ir(ir: NPU_IR) -> bool:
 
 
 def ir_to_dict(ir: NPU_IR) -> Dict[str, Any]:
-    """Convert NPU_IR to dictionary (for custom serialization)."""
+    """Convert ``NPU_IR`` to a plain dictionary for custom serialization.
+
+    Args:
+        ir: The IR to convert.
+
+    Returns:
+        JSON-serializable dictionary.
+    """
     return ir.to_dict()
 
 
 def dict_to_ir(data: Dict[str, Any]) -> NPU_IR:
-    """Convert dictionary to NPU_IR (for custom deserialization)."""
+    """Convert a plain dictionary back to ``NPU_IR``.
+
+    Args:
+        data: Dictionary previously produced by ``ir_to_dict()``.
+
+    Returns:
+        Reconstructed ``NPU_IR`` instance.
+    """
     return NPU_IR.from_dict(data)
 
 
 class IRSerializer:
-    """Class-based interface for IR serialization."""
+    """Class-based interface for IR serialization with optional validation."""
 
     def __init__(self, validate: bool = True):
         """Initialize the serializer.
@@ -165,26 +179,52 @@ class IRSerializer:
         self.validate = validate
 
     def serialize(self, ir: NPU_IR) -> str:
-        """Serialize IR to JSON string."""
+        """Serialize IR to JSON string.
+
+        Args:
+            ir: The IR to serialize.
+
+        Returns:
+            JSON string representation.
+        """
         if self.validate:
             validate_ir(ir)
         return serialize_ir(ir)
 
     def deserialize(self, json_str: str) -> NPU_IR:
-        """Deserialize IR from JSON string."""
+        """Deserialize IR from JSON string.
+
+        Args:
+            json_str: JSON string to parse.
+
+        Returns:
+            Deserialized ``NPU_IR`` instance.
+        """
         ir = deserialize_ir(json_str)
         if self.validate:
             validate_ir(ir)
         return ir
 
     def save(self, ir: NPU_IR, path: Union[str, Path]) -> None:
-        """Save IR to file."""
+        """Save IR to a JSON file.
+
+        Args:
+            ir: The IR to save.
+            path: Output file path.
+        """
         if self.validate:
             validate_ir(ir)
         save_ir(ir, path)
 
     def load(self, path: Union[str, Path]) -> NPU_IR:
-        """Load IR from file."""
+        """Load IR from a JSON file.
+
+        Args:
+            path: Input file path.
+
+        Returns:
+            Deserialized ``NPU_IR`` instance.
+        """
         ir = load_ir(path)
         if self.validate:
             validate_ir(ir)

@@ -71,7 +71,7 @@ exported.state_dict        # 파라미터 (meta tensor면 shape만)
 
 ### 2.4 NPU_IR 구조
 
-프레임워크에서 정의한 IR 데이터 구조:
+프레임워크에서 정의한 IR 데이터 구조입니다. 상세 API는 [IR 데이터 구조 레퍼런스](api/ir.md)를 참고하세요.
 
 ```python
 @dataclass

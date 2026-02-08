@@ -39,28 +39,11 @@ ATen fallback은 다음 과정으로 op을 실행합니다:
 - **Device 치환**: attrs의 `device: meta`를 `device: cpu`로 자동 변환 (텐서 생성 op용)
 - **Tensor?[] None 복원**: `aten.index.Tensor`의 `[None, idx_tensor]` 같은 패턴에서 None 위치를 정확히 복원
 
-## 3. 검증된 연산자 카테고리
+## 3. 지원 범위
 
-다음 카테고리의 연산자들이 attacker agent 테스트(120+ 모델)를 통해 검증되었습니다:
+**모든 ATen 연산자가 스키마 기반으로 자동 지원됩니다.** `torch.ops.aten.*`에 등록된 연산자라면 별도의 구현 없이 IR 변환과 실행이 가능합니다.
 
-| 카테고리 | 예시 |
-|---------|------|
-| Convolution | `conv1d`, `conv2d`, `conv3d`, `conv_transpose2d`, `convolution` |
-| Linear/Matrix | `linear`, `addmm`, `mm`, `bmm`, `matmul`, `einsum` |
-| Activation | `relu`, `gelu`, `silu`, `sigmoid`, `tanh`, `leaky_relu`, `hardswish` |
-| Normalization | `batch_norm`, `layer_norm`, `group_norm`, `instance_norm` |
-| Pooling | `max_pool2d`, `avg_pool2d`, `adaptive_avg_pool2d`, `adaptive_max_pool2d` |
-| Elementwise | `add`, `sub`, `mul`, `div`, `pow`, `sqrt`, `rsqrt`, `neg`, `abs`, `exp`, `log`, `clamp` |
-| Shape | `view`, `reshape`, `permute`, `transpose`, `flatten`, `squeeze`, `unsqueeze`, `expand`, `repeat` |
-| Concat/Split | `cat`, `split`, `chunk`, `stack` |
-| Reduction | `mean`, `sum`, `max`, `min`, `amax`, `amin` |
-| Softmax/Attention | `softmax`, `log_softmax`, `scaled_dot_product_attention` |
-| Embedding | `embedding` |
-| Indexing | `select`, `slice`, `index`, `gather` |
-| Comparison | `eq`, `ne`, `lt`, `gt`, `where` |
-| Type/Memory | `to.dtype`, `_to_copy`, `contiguous`, `clone` |
-| RNN | `gru`, `lstm` |
-| 기타 | `dropout`, `sort`, `topk`, `lerp`, `addcmul` |
+Convolution, Linear, Activation, Normalization, Pooling, Elementwise, Shape 변환, Reduction, Softmax/Attention, Embedding, Indexing, Comparison, RNN 등 PyTorch의 모든 표준 연산자 카테고리가 포함됩니다.
 
 ## 4. Non-ATen 연산자
 

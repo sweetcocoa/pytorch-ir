@@ -9,16 +9,31 @@ import torch
 
 @dataclass
 class TensorMeta:
-    """Metadata for a tensor (shape and dtype only, no actual data)."""
+    """Metadata for a tensor (shape and dtype only, no actual data).
+
+    Attributes:
+        name: Unique tensor name within the IR graph.
+        shape: Static shape of the tensor (e.g., ``(1, 3, 224, 224)``).
+        dtype: String representation of the data type (e.g., ``"float32"``).
+        producer_node: Name of the node that produced this tensor.
+            ``None`` for weights and graph inputs.
+        producer_output_idx: Index into the producer node's output list.
+            Used to resolve the correct tensor when a node produces multiple outputs.
+    """
 
     name: str
     shape: Tuple[int, ...]
-    dtype: str  # "float32", "float16", "int8", "bfloat16", etc.
-    # Producer tracking: which node produced this tensor
-    producer_node: Optional[str] = None  # Name of the node that produced this tensor
-    producer_output_idx: int = 0  # Index into producer node's output list
+    dtype: str
+    producer_node: Optional[str] = None
+    producer_output_idx: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary with ``name``, ``shape``, ``dtype`` keys.
+            Includes ``producer_node`` and ``producer_output_idx`` when present.
+        """
         d = {
             "name": self.name,
             "shape": list(self.shape),
@@ -31,6 +46,14 @@ class TensorMeta:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "TensorMeta":
+        """Deserialize from a dictionary.
+
+        Args:
+            data: Dictionary produced by ``to_dict()``.
+
+        Returns:
+            Reconstructed ``TensorMeta`` instance.
+        """
         return cls(
             name=data["name"],
             shape=tuple(data["shape"]),
@@ -42,15 +65,28 @@ class TensorMeta:
 
 @dataclass
 class OpNode:
-    """A single operation node in the IR graph."""
+    """A single operation node in the IR graph.
 
-    name: str  # Unique node name
-    op_type: str  # e.g., "aten.conv2d.default", "aten.linear.default"
-    inputs: List[TensorMeta]  # Input tensors with shape/dtype
-    outputs: List[TensorMeta]  # Output tensors with shape/dtype
-    attrs: Dict[str, Any] = field(default_factory=dict)  # kernel_size, stride, etc.
+    Attributes:
+        name: Unique node name (e.g., ``"conv2d"``).
+        op_type: ATen operation type string (e.g., ``"aten.conv2d.default"``).
+        inputs: Input tensor metadata list.
+        outputs: Output tensor metadata list.
+        attrs: Operation attributes such as ``kernel_size``, ``stride``, ``padding``, etc.
+    """
+
+    name: str
+    op_type: str
+    inputs: List[TensorMeta]
+    outputs: List[TensorMeta]
+    attrs: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary containing all node fields.
+        """
         return {
             "name": self.name,
             "op_type": self.op_type,
@@ -61,6 +97,14 @@ class OpNode:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "OpNode":
+        """Deserialize from a dictionary.
+
+        Args:
+            data: Dictionary produced by ``to_dict()``.
+
+        Returns:
+            Reconstructed ``OpNode`` instance.
+        """
         return cls(
             name=data["name"],
             op_type=data["op_type"],
@@ -72,31 +116,36 @@ class OpNode:
 
 @dataclass
 class NPU_IR:
-    """Complete IR representation of a model."""
+    """Complete IR representation of a model.
 
-    # Graph information
+    Attributes:
+        nodes: Ordered list of operation nodes in the graph.
+        graph_inputs: Metadata for graph input tensors (user-provided activations).
+        graph_outputs: Metadata for graph output tensors.
+        weights: Metadata for weight/buffer tensors (shape and dtype only, no values).
+        weight_name_mapping: Maps FX placeholder names (e.g., ``"p_linear_weight"``)
+            to original ``state_dict`` keys (e.g., ``"linear.weight"``).
+        constants: Lifted tensor constants from ``torch.export``
+            (e.g., index tensors created in ``forward()`` via ``register_buffer``).
+        model_name: Human-readable model name.
+        pytorch_version: PyTorch version used during IR extraction.
+    """
+
     nodes: List[OpNode]
-
-    # Model inputs/outputs (graph entry/exit points)
     graph_inputs: List[TensorMeta]
     graph_outputs: List[TensorMeta]
-
-    # Weight metadata (no values, only shape/dtype)
     weights: List[TensorMeta]
-
-    # Mapping from placeholder names to state_dict keys
-    # e.g., {"p_linear_weight": "linear.weight", "p_linear_bias": "linear.bias"}
     weight_name_mapping: Dict[str, str] = field(default_factory=dict)
-
-    # Lifted tensor constants from torch.export (e.g., index tensors in forward())
-    # Maps constant name (e.g., "lifted_tensor_0") to serializable representation
     constants: Dict[str, Any] = field(default_factory=dict)
-
-    # Metadata
     model_name: str = ""
     pytorch_version: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize to a JSON-compatible dictionary.
+
+        Returns:
+            Dictionary representation of the entire IR graph.
+        """
         d = {
             "model_name": self.model_name,
             "pytorch_version": self.pytorch_version,
@@ -116,6 +165,14 @@ class NPU_IR:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "NPU_IR":
+        """Deserialize from a dictionary.
+
+        Args:
+            data: Dictionary produced by ``to_dict()``.
+
+        Returns:
+            Reconstructed ``NPU_IR`` instance.
+        """
         _dtype_map = {
             "float32": torch.float32,
             "float64": torch.float64,
@@ -142,13 +199,24 @@ class NPU_IR:
         )
 
     def save(self, path: str) -> None:
-        """Save IR to a JSON file."""
+        """Save IR to a JSON file.
+
+        Args:
+            path: Output file path.
+        """
         with open(path, "w") as f:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
     def load(cls, path: str) -> "NPU_IR":
-        """Load IR from a JSON file."""
+        """Load IR from a JSON file.
+
+        Args:
+            path: Input file path.
+
+        Returns:
+            Deserialized ``NPU_IR`` instance.
+        """
         with open(path, "r") as f:
             data = json.load(f)
         return cls.from_dict(data)

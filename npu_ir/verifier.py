@@ -14,7 +14,16 @@ from .weight_loader import load_weights
 
 @dataclass
 class VerificationReport:
-    """Report from verification comparison."""
+    """Report from verification comparison.
+
+    Attributes:
+        is_valid: Whether all outputs are within tolerance.
+        max_diff: Maximum absolute difference across all output tensors.
+        mean_diff: Maximum of per-output mean absolute differences.
+        num_outputs: Number of output tensors compared.
+        output_details: Per-output comparison details (index, shape, is_close, max_diff, mean_diff).
+        error_message: Human-readable error description when verification fails. ``None`` on success.
+    """
 
     is_valid: bool
     max_diff: float = 0.0
@@ -244,7 +253,11 @@ def verify_ir_with_state_dict(
 
 
 class IRVerifier:
-    """Class-based interface for IR verification."""
+    """Class-based interface for IR verification.
+
+    Provides ``verify()`` and ``verify_with_state_dict()`` methods with
+    configurable tolerance values set at initialization.
+    """
 
     def __init__(self, rtol: float = 1e-5, atol: float = 1e-5):
         """Initialize the verifier.
@@ -263,7 +276,17 @@ class IRVerifier:
         original_model: nn.Module,
         test_inputs: Tuple[torch.Tensor, ...],
     ) -> Tuple[bool, VerificationReport]:
-        """Verify IR against original model."""
+        """Verify IR against original model using weights from file.
+
+        Args:
+            ir: The IR graph to verify.
+            weights_path: Path to the weight file (``.pt`` or ``.safetensors``).
+            original_model: The original PyTorch model with weights loaded.
+            test_inputs: Test input tensors.
+
+        Returns:
+            Tuple of ``(is_valid, report)``.
+        """
         return verify_ir(
             ir=ir,
             weights_path=weights_path,
@@ -280,7 +303,17 @@ class IRVerifier:
         original_model: nn.Module,
         test_inputs: Tuple[torch.Tensor, ...],
     ) -> Tuple[bool, VerificationReport]:
-        """Verify IR using state dict."""
+        """Verify IR against original model using an in-memory state dict.
+
+        Args:
+            ir: The IR graph to verify.
+            state_dict: Weight state dict.
+            original_model: The original PyTorch model with weights loaded.
+            test_inputs: Test input tensors.
+
+        Returns:
+            Tuple of ``(is_valid, report)``.
+        """
         return verify_ir_with_state_dict(
             ir=ir,
             state_dict=state_dict,

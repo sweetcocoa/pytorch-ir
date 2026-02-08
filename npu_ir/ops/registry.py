@@ -65,9 +65,22 @@ def register_executor(op_pattern: str):
 def _base_op_name(op_type: str) -> str:
     """Strip the overload suffix to get the base op name.
 
-    e.g. 'aten.conv2d.default' -> 'aten.conv2d'
-         'aten.add.Tensor' -> 'aten.add'
-         '<built-in function getitem>' -> '<built-in function getitem>'
+    For ATen ops the third dot-separated segment (the overload) is removed.
+    Non-ATen strings are returned unchanged.
+
+    Examples:
+        >>> _base_op_name("aten.conv2d.default")
+        'aten.conv2d'
+        >>> _base_op_name("aten.add.Tensor")
+        'aten.add'
+        >>> _base_op_name("<built-in function getitem>")
+        '<built-in function getitem>'
+
+    Args:
+        op_type: Fully-qualified op type string.
+
+    Returns:
+        Base op name without the overload suffix.
     """
     if op_type.startswith("aten."):
         parts = op_type.split(".")
@@ -78,7 +91,18 @@ def _base_op_name(op_type: str) -> str:
 
 
 def _lookup_registry(registry: Dict[str, Callable], op_type: str) -> Optional[Callable]:
-    """Look up a function in a registry by exact match, then by base op name."""
+    """Look up a function in a registry with cascading match strategy.
+
+    Tries in order: exact match, base-name match (strip overload suffix),
+    then any registered pattern sharing the same base name.
+
+    Args:
+        registry: The registry dictionary to search.
+        op_type: The op type string to look up.
+
+    Returns:
+        The registered function, or ``None`` if no match is found.
+    """
     # Exact match
     if op_type in registry:
         return registry[op_type]

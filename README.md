@@ -74,7 +74,7 @@ print(report)
 - [개념 및 아키텍처](docs/concepts.md) - 프레임워크의 핵심 개념과 설계
 - [환경 설정](docs/setup.md) - 설치 및 개발 환경 구성
 - [사용 가이드](docs/usage.md) - 상세 사용법과 예제
-- [API 레퍼런스](docs/api.md) - 공개 API 문서
+- [API 레퍼런스](docs/api/index.md) - 공개 API 문서
 - [연산자 지원](docs/operators.md) - 지원되는 ATen 연산자 목록
 - [확장 가이드](docs/extending.md) - 커스텀 연산자 추가 방법
 

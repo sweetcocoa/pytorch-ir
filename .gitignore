@@ -20,5 +20,8 @@ reports/
 # Generated outputs
 examples/*.json
 
+# MkDocs
+site/
+
 # Claude local
 .claude/settings.local.json
