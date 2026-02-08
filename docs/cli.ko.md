@@ -65,6 +65,7 @@ torch-ir visualize model.json --max-nodes 50   # 노드 수 제한
 |------|------|--------|
 | `ir_file` (위치 인자) | IR JSON 파일 경로 | 필수 |
 | `--max-nodes N` | 표시할 최대 노드 수 | `30` |
+| `--no-weights` | 다이어그램에서 weight 입력 숨기기 | `False` |
 | `-o, --output FILE` | 출력 파일. `.png`/`.svg`는 이미지, 그 외는 Mermaid 텍스트 | `None` |
 
 이미지 출력(`.png`, `.svg`)은 `rendering` optional dependency가 필요합니다:
@@ -129,14 +130,26 @@ pip install torch-ir[rendering]
         input_input[/"Input: input<br/>1x784"/]
         op_linear["linear<br/>1x256"]
         input_input -->|"1x784"| op_linear
+        w_p_0_weight[/"p_0_weight<br/>256x784"/]
+        w_p_0_weight -.->|"256x784"| op_linear
+        w_p_0_bias[/"p_0_bias<br/>256"/]
+        w_p_0_bias -.->|"256"| op_linear
         op_relu["relu<br/>1x256"]
         op_linear -->|"1x256"| op_relu
         op_linear_1["linear<br/>1x128"]
         op_relu -->|"1x256"| op_linear_1
+        w_p_2_weight[/"p_2_weight<br/>128x256"/]
+        w_p_2_weight -.->|"128x256"| op_linear_1
+        w_p_2_bias[/"p_2_bias<br/>128"/]
+        w_p_2_bias -.->|"128"| op_linear_1
         op_relu_1["relu<br/>1x128"]
         op_linear_1 -->|"1x128"| op_relu_1
         op_linear_2["linear<br/>1x10"]
         op_relu_1 -->|"1x128"| op_linear_2
+        w_p_4_weight[/"p_4_weight<br/>10x128"/]
+        w_p_4_weight -.->|"10x128"| op_linear_2
+        w_p_4_bias[/"p_4_bias<br/>10"/]
+        w_p_4_bias -.->|"10"| op_linear_2
         output_0[\"Output<br/>1x10"/]
         op_linear_2 --> output_0
     ```
@@ -211,18 +224,30 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
         input_x[/"Input: x<br/>1x16x64"/]
         op_linear["linear<br/>1x16x64"]
         input_x -->|"1x16x64"| op_linear
-        op_linear_1["linear<br/>1x16x64"]
-        input_x -->|"1x16x64"| op_linear_1
-        op_linear_2["linear<br/>1x16x64"]
-        input_x -->|"1x16x64"| op_linear_2
+        w_p_q_proj_weight[/"p_q_proj_weight<br/>64x64"/]
+        w_p_q_proj_weight -.->|"64x64"| op_linear
+        w_p_q_proj_bias[/"p_q_proj_bias<br/>64"/]
+        w_p_q_proj_bias -.->|"64"| op_linear
         op_view["view<br/>1x16x4x16"]
         op_linear -->|"1x16x64"| op_view
         op_transpose["transpose.int<br/>1x4x16x16"]
         op_view -->|"1x16x4x16"| op_transpose
+        op_linear_1["linear<br/>1x16x64"]
+        input_x -->|"1x16x64"| op_linear_1
+        w_p_k_proj_weight[/"p_k_proj_weight<br/>64x64"/]
+        w_p_k_proj_weight -.->|"64x64"| op_linear_1
+        w_p_k_proj_bias[/"p_k_proj_bias<br/>64"/]
+        w_p_k_proj_bias -.->|"64"| op_linear_1
         op_view_1["view<br/>1x16x4x16"]
         op_linear_1 -->|"1x16x64"| op_view_1
         op_transpose_1["transpose.int<br/>1x4x16x16"]
         op_view_1 -->|"1x16x4x16"| op_transpose_1
+        op_linear_2["linear<br/>1x16x64"]
+        input_x -->|"1x16x64"| op_linear_2
+        w_p_v_proj_weight[/"p_v_proj_weight<br/>64x64"/]
+        w_p_v_proj_weight -.->|"64x64"| op_linear_2
+        w_p_v_proj_bias[/"p_v_proj_bias<br/>64"/]
+        w_p_v_proj_bias -.->|"64"| op_linear_2
         op_view_2["view<br/>1x16x4x16"]
         op_linear_2 -->|"1x16x64"| op_view_2
         op_transpose_2["transpose.int<br/>1x4x16x16"]
@@ -247,6 +272,10 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
         op_contiguous -->|"1x16x4x16"| op_view_3
         op_linear_3["linear<br/>1x16x64"]
         op_view_3 -->|"1x16x64"| op_linear_3
+        w_p_out_proj_weight[/"p_out_proj_weight<br/>64x64"/]
+        w_p_out_proj_weight -.->|"64x64"| op_linear_3
+        w_p_out_proj_bias[/"p_out_proj_bias<br/>64"/]
+        w_p_out_proj_bias -.->|"64"| op_linear_3
         output_0[\"Output<br/>1x16x64"/]
         op_linear_3 --> output_0
     ```
@@ -319,16 +348,40 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
         input_x[/"Input: x<br/>1x3x32x32"/]
         op_conv2d["conv2d<br/>1x32x32x32"]
         input_x -->|"1x3x32x32"| op_conv2d
+        w_p_backbone_0_weight[/"p_backbone_0_weight<br/>32x3x3x3"/]
+        w_p_backbone_0_weight -.->|"32x3x3x3"| op_conv2d
+        w_p_backbone_0_bias[/"p_backbone_0_bias<br/>32"/]
+        w_p_backbone_0_bias -.->|"32"| op_conv2d
         op_batch_norm["batch_norm<br/>1x32x32x32"]
         op_conv2d -->|"1x32x32x32"| op_batch_norm
+        w_p_backbone_1_weight[/"p_backbone_1_weight<br/>32"/]
+        w_p_backbone_1_weight -.->|"32"| op_batch_norm
+        w_p_backbone_1_bias[/"p_backbone_1_bias<br/>32"/]
+        w_p_backbone_1_bias -.->|"32"| op_batch_norm
+        w_b_backbone_1_running_mean[/"b_backbone_1_running_mean<br/>32"/]
+        w_b_backbone_1_running_mean -.->|"32"| op_batch_norm
+        w_b_backbone_1_running_var[/"b_backbone_1_running_var<br/>32"/]
+        w_b_backbone_1_running_var -.->|"32"| op_batch_norm
         op_relu["relu<br/>1x32x32x32"]
         op_batch_norm -->|"1x32x32x32"| op_relu
         op_max_pool2d["max_pool2d<br/>1x32x16x16"]
         op_relu -->|"1x32x32x32"| op_max_pool2d
         op_conv2d_1["conv2d<br/>1x64x16x16"]
         op_max_pool2d -->|"1x32x16x16"| op_conv2d_1
+        w_p_backbone_4_weight[/"p_backbone_4_weight<br/>64x32x3x3"/]
+        w_p_backbone_4_weight -.->|"64x32x3x3"| op_conv2d_1
+        w_p_backbone_4_bias[/"p_backbone_4_bias<br/>64"/]
+        w_p_backbone_4_bias -.->|"64"| op_conv2d_1
         op_batch_norm_1["batch_norm<br/>1x64x16x16"]
         op_conv2d_1 -->|"1x64x16x16"| op_batch_norm_1
+        w_p_backbone_5_weight[/"p_backbone_5_weight<br/>64"/]
+        w_p_backbone_5_weight -.->|"64"| op_batch_norm_1
+        w_p_backbone_5_bias[/"p_backbone_5_bias<br/>64"/]
+        w_p_backbone_5_bias -.->|"64"| op_batch_norm_1
+        w_b_backbone_5_running_mean[/"b_backbone_5_running_mean<br/>64"/]
+        w_b_backbone_5_running_mean -.->|"64"| op_batch_norm_1
+        w_b_backbone_5_running_var[/"b_backbone_5_running_var<br/>64"/]
+        w_b_backbone_5_running_var -.->|"64"| op_batch_norm_1
         op_relu_1["relu<br/>1x64x16x16"]
         op_batch_norm_1 -->|"1x64x16x16"| op_relu_1
         op_adaptive_avg_pool2d["adaptive_avg_pool2d<br/>1x64x4x4"]
@@ -337,16 +390,32 @@ Multi-head self-attention (4 heads, d_model=64). 입력에서 Q/K/V 프로젝션
         op_adaptive_avg_pool2d -->|"1x64x4x4"| op_flatten
         op_linear["linear<br/>1x128"]
         op_flatten -->|"1x1024"| op_linear
+        w_p_classifier_0_weight[/"p_classifier_0_weight<br/>128x1024"/]
+        w_p_classifier_0_weight -.->|"128x1024"| op_linear
+        w_p_classifier_0_bias[/"p_classifier_0_bias<br/>128"/]
+        w_p_classifier_0_bias -.->|"128"| op_linear
         op_relu_2["relu<br/>1x128"]
         op_linear -->|"1x128"| op_relu_2
         op_linear_1["linear<br/>1x10"]
         op_relu_2 -->|"1x128"| op_linear_1
+        w_p_classifier_2_weight[/"p_classifier_2_weight<br/>10x128"/]
+        w_p_classifier_2_weight -.->|"10x128"| op_linear_1
+        w_p_classifier_2_bias[/"p_classifier_2_bias<br/>10"/]
+        w_p_classifier_2_bias -.->|"10"| op_linear_1
         op_linear_2["linear<br/>1x64"]
         op_flatten -->|"1x1024"| op_linear_2
+        w_p_aux_head_0_weight[/"p_aux_head_0_weight<br/>64x1024"/]
+        w_p_aux_head_0_weight -.->|"64x1024"| op_linear_2
+        w_p_aux_head_0_bias[/"p_aux_head_0_bias<br/>64"/]
+        w_p_aux_head_0_bias -.->|"64"| op_linear_2
         op_relu_3["relu<br/>1x64"]
         op_linear_2 -->|"1x64"| op_relu_3
         op_linear_3["linear<br/>1x4"]
         op_relu_3 -->|"1x64"| op_linear_3
+        w_p_aux_head_2_weight[/"p_aux_head_2_weight<br/>4x64"/]
+        w_p_aux_head_2_weight -.->|"4x64"| op_linear_3
+        w_p_aux_head_2_bias[/"p_aux_head_2_bias<br/>4"/]
+        w_p_aux_head_2_bias -.->|"4"| op_linear_3
         output_0[\"Output<br/>1x10"/]
         op_linear_1 --> output_0
         output_1[\"Output<br/>1x4"/]

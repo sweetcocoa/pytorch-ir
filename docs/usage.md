@@ -632,18 +632,30 @@ flowchart TD
     input_x[/"Input: x<br/>1x16x64"/]
     op_linear["linear<br/>1x16x64"]
     input_x -->|"1x16x64"| op_linear
-    op_linear_1["linear<br/>1x16x64"]
-    input_x -->|"1x16x64"| op_linear_1
-    op_linear_2["linear<br/>1x16x64"]
-    input_x -->|"1x16x64"| op_linear_2
+    w_p_q_proj_weight[/"p_q_proj_weight<br/>64x64"/]
+    w_p_q_proj_weight -.->|"64x64"| op_linear
+    w_p_q_proj_bias[/"p_q_proj_bias<br/>64"/]
+    w_p_q_proj_bias -.->|"64"| op_linear
     op_view["view<br/>1x16x4x16"]
     op_linear -->|"1x16x64"| op_view
     op_transpose["transpose.int<br/>1x4x16x16"]
     op_view -->|"1x16x4x16"| op_transpose
+    op_linear_1["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_1
+    w_p_k_proj_weight[/"p_k_proj_weight<br/>64x64"/]
+    w_p_k_proj_weight -.->|"64x64"| op_linear_1
+    w_p_k_proj_bias[/"p_k_proj_bias<br/>64"/]
+    w_p_k_proj_bias -.->|"64"| op_linear_1
     op_view_1["view<br/>1x16x4x16"]
     op_linear_1 -->|"1x16x64"| op_view_1
     op_transpose_1["transpose.int<br/>1x4x16x16"]
     op_view_1 -->|"1x16x4x16"| op_transpose_1
+    op_linear_2["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_2
+    w_p_v_proj_weight[/"p_v_proj_weight<br/>64x64"/]
+    w_p_v_proj_weight -.->|"64x64"| op_linear_2
+    w_p_v_proj_bias[/"p_v_proj_bias<br/>64"/]
+    w_p_v_proj_bias -.->|"64"| op_linear_2
     op_view_2["view<br/>1x16x4x16"]
     op_linear_2 -->|"1x16x64"| op_view_2
     op_transpose_2["transpose.int<br/>1x4x16x16"]
@@ -668,22 +680,42 @@ flowchart TD
     op_contiguous -->|"1x16x4x16"| op_view_3
     op_linear_3["linear<br/>1x16x64"]
     op_view_3 -->|"1x16x64"| op_linear_3
+    w_p_out_proj_weight[/"p_out_proj_weight<br/>64x64"/]
+    w_p_out_proj_weight -.->|"64x64"| op_linear_3
+    w_p_out_proj_bias[/"p_out_proj_bias<br/>64"/]
+    w_p_out_proj_bias -.->|"64"| op_linear_3
     op_add["add.Tensor<br/>1x16x64"]
     input_x -->|"1x16x64"| op_add
     op_linear_3 -->|"1x16x64"| op_add
     op_layer_norm["layer_norm<br/>1x16x64"]
     op_add -->|"1x16x64"| op_layer_norm
+    w_p_norm1_weight[/"p_norm1_weight<br/>64"/]
+    w_p_norm1_weight -.->|"64"| op_layer_norm
+    w_p_norm1_bias[/"p_norm1_bias<br/>64"/]
+    w_p_norm1_bias -.->|"64"| op_layer_norm
     op_linear_4["linear<br/>1x16x256"]
     op_layer_norm -->|"1x16x64"| op_linear_4
+    w_p_ffn_0_weight[/"p_ffn_0_weight<br/>256x64"/]
+    w_p_ffn_0_weight -.->|"256x64"| op_linear_4
+    w_p_ffn_0_bias[/"p_ffn_0_bias<br/>256"/]
+    w_p_ffn_0_bias -.->|"256"| op_linear_4
     op_gelu["gelu<br/>1x16x256"]
     op_linear_4 -->|"1x16x256"| op_gelu
     op_linear_5["linear<br/>1x16x64"]
     op_gelu -->|"1x16x256"| op_linear_5
+    w_p_ffn_2_weight[/"p_ffn_2_weight<br/>64x256"/]
+    w_p_ffn_2_weight -.->|"64x256"| op_linear_5
+    w_p_ffn_2_bias[/"p_ffn_2_bias<br/>64"/]
+    w_p_ffn_2_bias -.->|"64"| op_linear_5
     op_add_1["add.Tensor<br/>1x16x64"]
     op_layer_norm -->|"1x16x64"| op_add_1
     op_linear_5 -->|"1x16x64"| op_add_1
     op_layer_norm_1["layer_norm<br/>1x16x64"]
     op_add_1 -->|"1x16x64"| op_layer_norm_1
+    w_p_norm2_weight[/"p_norm2_weight<br/>64"/]
+    w_p_norm2_weight -.->|"64"| op_layer_norm_1
+    w_p_norm2_bias[/"p_norm2_bias<br/>64"/]
+    w_p_norm2_bias -.->|"64"| op_layer_norm_1
     output_0[\"Output<br/>1x16x64"/]
     op_layer_norm_1 --> output_0
 ```

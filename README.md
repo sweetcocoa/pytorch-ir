@@ -86,17 +86,25 @@ The IR above produces the following JSON. Each node records its ATen op type, in
 
 ### IR Visualization
 
-`ir_to_mermaid()` renders the IR as a Mermaid flowchart (weight edges are omitted for clarity):
+`ir_to_mermaid()` renders the IR as a Mermaid flowchart. Weight inputs are shown as dashed edges:
 
 ```mermaid
 flowchart TD
     input_x[/"Input: x<br/>1x4"/]
     op_linear["linear<br/>1x8"]
     input_x -->|"1x4"| op_linear
+    w_p_fc1_weight[/"p_fc1_weight<br/>8x4"/]
+    w_p_fc1_weight -.->|"8x4"| op_linear
+    w_p_fc1_bias[/"p_fc1_bias<br/>8"/]
+    w_p_fc1_bias -.->|"8"| op_linear
     op_relu["relu<br/>1x8"]
     op_linear -->|"1x8"| op_relu
     op_linear_1["linear<br/>1x2"]
     op_relu -->|"1x8"| op_linear_1
+    w_p_fc2_weight[/"p_fc2_weight<br/>2x8"/]
+    w_p_fc2_weight -.->|"2x8"| op_linear_1
+    w_p_fc2_bias[/"p_fc2_bias<br/>2"/]
+    w_p_fc2_bias -.->|"2"| op_linear_1
     output_0[\"Output<br/>1x2"/]
     op_linear_1 --> output_0
 ```

@@ -110,26 +110,35 @@
 
 === "IR 그래프 시각화"
 
-    `ir_to_mermaid()` 함수로 생성한 Mermaid 다이어그램입니다. Weight 입력은 그래프 가독성을 위해 생략됩니다.
+    `ir_to_mermaid()` 함수로 생성한 Mermaid 다이어그램입니다. Weight 입력은 점선 엣지로 표시됩니다.
 
     ```mermaid
     flowchart TD
         input_x[/"Input: x<br/>1x4"/]
         op_linear["linear<br/>1x8"]
-        op_relu["relu<br/>1x8"]
-        op_linear_1["linear<br/>1x2"]
-        output_0[\"Output<br/>1x2"/]
         input_x -->|"1x4"| op_linear
+        w_p_fc1_weight[/"p_fc1_weight<br/>8x4"/]
+        w_p_fc1_weight -.->|"8x4"| op_linear
+        w_p_fc1_bias[/"p_fc1_bias<br/>8"/]
+        w_p_fc1_bias -.->|"8"| op_linear
+        op_relu["relu<br/>1x8"]
         op_linear -->|"1x8"| op_relu
+        op_linear_1["linear<br/>1x2"]
         op_relu -->|"1x8"| op_linear_1
+        w_p_fc2_weight[/"p_fc2_weight<br/>2x8"/]
+        w_p_fc2_weight -.->|"2x8"| op_linear_1
+        w_p_fc2_bias[/"p_fc2_bias<br/>2"/]
+        w_p_fc2_bias -.->|"2"| op_linear_1
+        output_0[\"Output<br/>1x2"/]
         op_linear_1 --> output_0
     ```
 
     **다이어그램 설명:**
 
-    - 평행사변형 노드: 그래프 입력/출력
+    - 평행사변형 노드: 그래프 입력/출력 및 weight
     - 사각형 노드: 연산 (op_type과 출력 shape 표시)
-    - 엣지 라벨: 텐서 shape
+    - 실선 엣지: activation 데이터 흐름
+    - 점선 엣지: weight 입력
 
 ## 프로그래밍적 시각화
 
@@ -159,10 +168,18 @@ mermaid_str = ir_to_mermaid(ir, max_nodes=20)
         input_x[/"Input: x<br/>1x4"/]
         op_linear["linear<br/>1x8"]
         input_x -->|"1x4"| op_linear
+        w_p_fc1_weight[/"p_fc1_weight<br/>8x4"/]
+        w_p_fc1_weight -.->|"8x4"| op_linear
+        w_p_fc1_bias[/"p_fc1_bias<br/>8"/]
+        w_p_fc1_bias -.->|"8"| op_linear
         op_relu["relu<br/>1x8"]
         op_linear -->|"1x8"| op_relu
         op_linear_1["linear<br/>1x2"]
         op_relu -->|"1x8"| op_linear_1
+        w_p_fc2_weight[/"p_fc2_weight<br/>2x8"/]
+        w_p_fc2_weight -.->|"2x8"| op_linear_1
+        w_p_fc2_bias[/"p_fc2_bias<br/>2"/]
+        w_p_fc2_bias -.->|"2"| op_linear_1
         output_0[\"Output<br/>1x2"/]
         op_linear_1 --> output_0
     ```

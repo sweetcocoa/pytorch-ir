@@ -6,13 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 IR Extraction Framework — extracts intermediate representation (IR) graphs from PyTorch models using `torch.export` **without loading actual weights**. Models run on PyTorch's meta device so only shape/dtype metadata is captured. The IR serializes to JSON for consumption by downstream compiler backends.
 
-Documentation is written in Korean. Match that convention for doc changes.
+Documentation is bilingual (English + Korean via mkdocs-static-i18n). Each doc file has `.md` (English) and `.ko.md` (Korean) variants. README.md is English; README.ko.md is Korean. Match existing conventions when editing docs.
 
 ## Commands
 
 ```bash
-# Install dependencies
-uv sync --dev
+# Install dependencies (--extra dev for test/lint tools)
+uv sync --extra dev
 
 # Run all tests
 uv run pytest tests/ -v
@@ -36,6 +36,14 @@ uv run ruff check torch_ir/ tests/
 
 # Lint with auto-fix
 uv run ruff check --fix torch_ir/ tests/
+
+# CLI
+uv run torch-ir info model.json          # Show IR summary
+uv run torch-ir visualize model.json     # Mermaid diagram to stdout
+uv run torch-ir visualize model.json -o graph.png  # Render to image
+
+# Build package (version derived from git tags via hatch-vcs)
+uv build
 ```
 
 ## Architecture
@@ -56,6 +64,8 @@ The pipeline flows through these modules in order:
 - **executor.py** — runs the IR graph with real tensors; uses schema-based ATen fallback for automatic op execution
 - **verifier.py** — compares IR execution output against original model output (tolerances: rtol=1e-4, atol=1e-4)
 - **serializer.py** — JSON serialization/deserialization of `IR`
+- **visualize.py** — Mermaid flowchart generation (`ir_to_mermaid`) and op distribution pie charts
+- **cli.py** — `torch-ir` CLI (subcommands: `info`, `visualize`)
 
 ### Key Design Decisions
 
@@ -81,7 +91,7 @@ The pipeline flows through these modules in order:
 
 ### Public API (__init__.py)
 
-Main entry points: `extract_ir()`, `execute_ir()`, `verify_ir()`, `verify_ir_with_state_dict()`, `save_ir()`/`load_ir()`, `IR.save()`/`IR.load()`
+Main entry points: `extract_ir()`, `execute_ir()`, `verify_ir()`, `verify_ir_with_state_dict()`, `save_ir()`/`load_ir()`, `IR.save()`/`IR.load()`, `ir_to_mermaid()`, `generate_op_distribution_pie()`
 
 ### Test Structure
 

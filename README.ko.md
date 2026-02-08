@@ -86,17 +86,25 @@ print(ir_to_mermaid(ir))
 
 ### IR 시각화
 
-`ir_to_mermaid()`는 IR을 Mermaid 플로우차트로 렌더링합니다 (weight 엣지는 생략):
+`ir_to_mermaid()`는 IR을 Mermaid 플로우차트로 렌더링합니다. Weight 입력은 점선 엣지로 표시됩니다:
 
 ```mermaid
 flowchart TD
     input_x[/"Input: x<br/>1x4"/]
     op_linear["linear<br/>1x8"]
     input_x -->|"1x4"| op_linear
+    w_p_fc1_weight[/"p_fc1_weight<br/>8x4"/]
+    w_p_fc1_weight -.->|"8x4"| op_linear
+    w_p_fc1_bias[/"p_fc1_bias<br/>8"/]
+    w_p_fc1_bias -.->|"8"| op_linear
     op_relu["relu<br/>1x8"]
     op_linear -->|"1x8"| op_relu
     op_linear_1["linear<br/>1x2"]
     op_relu -->|"1x8"| op_linear_1
+    w_p_fc2_weight[/"p_fc2_weight<br/>2x8"/]
+    w_p_fc2_weight -.->|"2x8"| op_linear_1
+    w_p_fc2_bias[/"p_fc2_bias<br/>2"/]
+    w_p_fc2_bias -.->|"2"| op_linear_1
     output_0[\"Output<br/>1x2"/]
     op_linear_1 --> output_0
 ```

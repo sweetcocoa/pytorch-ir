@@ -66,7 +66,7 @@ def _render_mermaid_image(mermaid_text: str, output_path: str) -> None:
 def cmd_visualize(args: argparse.Namespace) -> None:
     """Handle the 'visualize' subcommand."""
     ir = _load_ir_file(args.ir_file)
-    mermaid_text = ir_to_mermaid(ir, max_nodes=args.max_nodes)
+    mermaid_text = ir_to_mermaid(ir, max_nodes=args.max_nodes, include_weights=not args.no_weights)
 
     if args.output is not None:
         ext = Path(args.output).suffix.lower()
@@ -149,6 +149,11 @@ def create_parser() -> argparse.ArgumentParser:
         type=int,
         default=30,
         help="Maximum number of nodes to display (default: 30)",
+    )
+    vis_parser.add_argument(
+        "--no-weights",
+        action="store_true",
+        help="Hide weight inputs from the diagram",
     )
     vis_parser.add_argument(
         "-o",

@@ -33,12 +33,13 @@ def _get_short_op_name(op_type: str) -> str:
     return name
 
 
-def ir_to_mermaid(ir: IR, max_nodes: int = 30) -> str:
+def ir_to_mermaid(ir: IR, max_nodes: int = 30, include_weights: bool = True) -> str:
     """Convert IR to Mermaid flowchart diagram.
 
     Args:
         ir: The IR to visualize.
         max_nodes: Maximum number of nodes to include (for large graphs).
+        include_weights: If True, show weight inputs as nodes and edges.
 
     Returns:
         Mermaid flowchart diagram as string.
@@ -54,10 +55,14 @@ def ir_to_mermaid(ir: IR, max_nodes: int = 30) -> str:
         input_names.add(inp.name)
         tensor_to_producer[inp.name] = f"input_{inp.name}"
 
-    # Track weight tensor names
+    # Track weight tensor names and placeholder-to-weight mapping
     weight_names: Set[str] = set()
+    weight_placeholder_names: Set[str] = set()
     for w in ir.weights:
         weight_names.add(w.name)
+    if ir.weight_name_mapping:
+        for placeholder in ir.weight_name_mapping:
+            weight_placeholder_names.add(placeholder)
 
     # Track output tensor names
     output_names: Set[str] = set()
@@ -94,14 +99,21 @@ def ir_to_mermaid(ir: IR, max_nodes: int = 30) -> str:
 
         # Add edges from inputs
         for inp in node.inputs:
-            # Skip weight inputs for cleaner graph
-            if inp.name in weight_names:
+            is_weight = inp.name in weight_names or inp.name in weight_placeholder_names
+            if is_weight and not include_weights:
                 continue
 
-            producer = tensor_to_producer.get(inp.name)
-            if producer:
-                edge_label = _format_shape(inp.shape)
-                lines.append(f'    {producer} -->|"{edge_label}"| op_{node.name}')
+            if is_weight and include_weights:
+                # Add weight node and edge
+                w_id = f"w_{inp.name}"
+                w_label = _sanitize_label(f"{inp.name}<br/>{_format_shape(inp.shape)}")
+                lines.append(f'    {w_id}[/"{w_label}"/]')
+                lines.append(f'    {w_id} -.->|"{_format_shape(inp.shape)}"| op_{node.name}')
+            else:
+                producer = tensor_to_producer.get(inp.name)
+                if producer:
+                    edge_label = _format_shape(inp.shape)
+                    lines.append(f'    {producer} -->|"{edge_label}"| op_{node.name}')
 
     # Add output nodes
     for i, out in enumerate(ir.graph_outputs):
