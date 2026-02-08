@@ -21,6 +21,9 @@ my_compiler/
 │   ├── executor.py      # IR executor
 │   ├── weight_loader.py # Weight loader
 │   ├── verifier.py      # Verifier
+│   ├── visualize.py     # Mermaid diagram generation
+│   ├── cli.py           # Command-line interface
+│   ├── __main__.py      # python -m torch_ir support
 │   └── ops/             # Operator registry and utilities
 │       ├── __init__.py
 │       ├── registry.py  # Custom operator registration mechanism
@@ -58,9 +61,15 @@ dev = [
     "pytest>=8.0",
     "torchvision>=0.16",
 ]
+rendering = [
+    "mmdc>=0.4",
+]
 safetensors = [
     "safetensors>=0.4",
 ]
+
+[project.scripts]
+torch-ir = "torch_ir.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -170,5 +179,5 @@ print(f"CUDA version: {torch.version.cuda}")
 After completing environment setup:
 
 1. Read the [Usage Guide](usage.md) to learn basic usage
-2. Run examples in the [examples/](../examples/) directory
+2. Check the [Example](example.md) page for IR extraction examples
 3. Check detailed API in the [API Reference](api/index.md)

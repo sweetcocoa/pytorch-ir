@@ -9,6 +9,7 @@ A framework for extracting IR (Intermediate Representation) from PyTorch models 
 - **Complete Metadata**: Automatic extraction of shape and dtype information for all tensors
 - **IR Execution and Verification**: Execute extracted IR and verify identical results with original model
 - **Extensible Design**: Provides custom operator registration mechanism
+- **CLI Tools**: Inspect and visualize IR files from the terminal (`torch-ir info`, `torch-ir visualize`)
 
 ## Quick Start
 
@@ -77,6 +78,7 @@ print(report)
 - [API Reference](api/index.md) - Public API documentation
 - [Operator Support](operators.md) - List of supported ATen operators
 - [Extension Guide](extending.md) - How to add custom operators
+- [CLI Reference](cli.md) - Command-line tools for IR inspection and visualization
 
 ## Dependencies
 

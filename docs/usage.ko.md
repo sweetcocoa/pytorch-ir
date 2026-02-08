@@ -564,7 +564,133 @@ class MyCustomModel(nn.Module):
         return self.conv(x)
 ```
 
-## 10. 다음 단계
+## 10. CLI 도구
+
+`torch-ir` CLI를 사용하면 Python 코드 작성 없이 터미널에서 IR 파일을 조회하고 시각화할 수 있습니다.
+
+### 10.1 IR 요약 정보
+
+```bash
+# IR 요약 표시
+torch-ir info model_ir.json
+
+# JSON 형식 출력
+torch-ir info model_ir.json --json
+
+# 파일로 저장
+torch-ir info model_ir.json --json -o summary.json
+```
+
+예를 들어, 3개의 잔차 블록을 가진 DeepResNet 모델의 IR 요약:
+
+```
+Model: DeepResNet
+Nodes: 27
+Inputs: 1
+Outputs: 1
+Weights: 51
+Total parameters: 57,617
+
+Input shapes:
+  x: [1, 3, 32, 32]
+
+Output shapes:
+  linear: [1, 10]
+
+Op distribution:
+  aten.conv2d.default: 7
+  aten.batch_norm.default: 7
+  aten.relu.default: 7
+  aten.add.Tensor: 3
+  aten.adaptive_avg_pool2d.default: 1
+  aten.flatten.using_ints: 1
+  aten.linear.default: 1
+```
+
+### 10.2 그래프 시각화
+
+```bash
+# Mermaid 다이어그램을 stdout으로 출력
+torch-ir visualize model_ir.json
+
+# Mermaid 텍스트 파일로 저장
+torch-ir visualize model_ir.json -o graph.mmd
+
+# PNG/SVG 이미지로 렌더링 (필요: pip install torch-ir[rendering])
+torch-ir visualize model_ir.json -o graph.png
+torch-ir visualize model_ir.json -o graph.svg
+
+# 대규모 그래프의 표시 노드 수 제한
+torch-ir visualize model_ir.json --max-nodes 50
+```
+
+아래는 TransformerBlock (self-attention + FFN + residual connections) 모델의 실제 IR 그래프입니다.
+왼쪽 경로에서 Q/K/V 프로젝션 → attention → output projection이 진행되고, `add.Tensor` 노드에서 잔차 연결이 합류합니다:
+
+```mermaid
+flowchart TD
+    input_x[/"Input: x<br/>1x16x64"/]
+    op_linear["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear
+    op_linear_1["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_1
+    op_linear_2["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_2
+    op_view["view<br/>1x16x4x16"]
+    op_linear -->|"1x16x64"| op_view
+    op_transpose["transpose.int<br/>1x4x16x16"]
+    op_view -->|"1x16x4x16"| op_transpose
+    op_view_1["view<br/>1x16x4x16"]
+    op_linear_1 -->|"1x16x64"| op_view_1
+    op_transpose_1["transpose.int<br/>1x4x16x16"]
+    op_view_1 -->|"1x16x4x16"| op_transpose_1
+    op_view_2["view<br/>1x16x4x16"]
+    op_linear_2 -->|"1x16x64"| op_view_2
+    op_transpose_2["transpose.int<br/>1x4x16x16"]
+    op_view_2 -->|"1x16x4x16"| op_transpose_2
+    op_transpose_3["transpose.int<br/>1x4x16x16"]
+    op_transpose_1 -->|"1x4x16x16"| op_transpose_3
+    op_matmul["matmul<br/>1x4x16x16"]
+    op_transpose -->|"1x4x16x16"| op_matmul
+    op_transpose_3 -->|"1x4x16x16"| op_matmul
+    op_div["div.Tensor<br/>1x4x16x16"]
+    op_matmul -->|"1x4x16x16"| op_div
+    op_softmax["softmax.int<br/>1x4x16x16"]
+    op_div -->|"1x4x16x16"| op_softmax
+    op_matmul_1["matmul<br/>1x4x16x16"]
+    op_softmax -->|"1x4x16x16"| op_matmul_1
+    op_transpose_2 -->|"1x4x16x16"| op_matmul_1
+    op_transpose_4["transpose.int<br/>1x16x4x16"]
+    op_matmul_1 -->|"1x4x16x16"| op_transpose_4
+    op_contiguous["contiguous<br/>1x16x4x16"]
+    op_transpose_4 -->|"1x16x4x16"| op_contiguous
+    op_view_3["view<br/>1x16x64"]
+    op_contiguous -->|"1x16x4x16"| op_view_3
+    op_linear_3["linear<br/>1x16x64"]
+    op_view_3 -->|"1x16x64"| op_linear_3
+    op_add["add.Tensor<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_add
+    op_linear_3 -->|"1x16x64"| op_add
+    op_layer_norm["layer_norm<br/>1x16x64"]
+    op_add -->|"1x16x64"| op_layer_norm
+    op_linear_4["linear<br/>1x16x256"]
+    op_layer_norm -->|"1x16x64"| op_linear_4
+    op_gelu["gelu<br/>1x16x256"]
+    op_linear_4 -->|"1x16x256"| op_gelu
+    op_linear_5["linear<br/>1x16x64"]
+    op_gelu -->|"1x16x256"| op_linear_5
+    op_add_1["add.Tensor<br/>1x16x64"]
+    op_layer_norm -->|"1x16x64"| op_add_1
+    op_linear_5 -->|"1x16x64"| op_add_1
+    op_layer_norm_1["layer_norm<br/>1x16x64"]
+    op_add_1 -->|"1x16x64"| op_layer_norm_1
+    output_0[\"Output<br/>1x16x64"/]
+    op_layer_norm_1 --> output_0
+```
+
+전체 CLI 문서는 [CLI 레퍼런스](cli.ko.md)를 참고하세요.
+
+## 11. 다음 단계
 
 - [API 레퍼런스](api/index.md) - 상세 API 문서
 - [연산자 지원](operators.md) - 지원되는 연산자 목록

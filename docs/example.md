@@ -152,6 +152,21 @@ print(mermaid_str)
 mermaid_str = ir_to_mermaid(ir, max_nodes=20)
 ```
 
+??? example "ir_to_mermaid() output"
+
+    ```text
+    flowchart TD
+        input_x[/"Input: x<br/>1x4"/]
+        op_linear["linear<br/>1x8"]
+        input_x -->|"1x4"| op_linear
+        op_relu["relu<br/>1x8"]
+        op_linear -->|"1x8"| op_relu
+        op_linear_1["linear<br/>1x2"]
+        op_relu -->|"1x8"| op_linear_1
+        output_0[\"Output<br/>1x2"/]
+        op_linear_1 --> output_0
+    ```
+
 You can also generate operator distribution pie charts:
 
 ```python
@@ -160,5 +175,14 @@ from torch_ir import generate_op_distribution_pie
 pie_chart = generate_op_distribution_pie(ir)
 print(pie_chart)
 ```
+
+??? example "generate_op_distribution_pie() output"
+
+    ```mermaid
+    pie showData
+        title "Operator Distribution"
+        "linear" : 2
+        "relu" : 1
+    ```
 
 See the [Visualize API Reference](api/visualize.md) for detailed API documentation.

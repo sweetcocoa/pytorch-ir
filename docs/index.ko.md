@@ -9,6 +9,7 @@ PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)�
 - **완전한 메타데이터**: 모든 텐서의 shape, dtype 정보 자동 추출
 - **IR 실행 및 검증**: 추출된 IR을 실행하여 원본 모델과 동일한 결과 검증 가능
 - **확장 가능한 설계**: 커스텀 연산자 등록 메커니즘 제공
+- **CLI 도구**: 터미널에서 IR 파일 조회 및 시각화 (`torch-ir info`, `torch-ir visualize`)
 
 ## 빠른 시작
 
@@ -77,6 +78,7 @@ print(report)
 - [API 레퍼런스](api/index.md) - 공개 API 문서
 - [연산자 지원](operators.md) - 지원되는 ATen 연산자 목록
 - [확장 가이드](extending.md) - 커스텀 연산자 추가 방법
+- [CLI 레퍼런스](cli.ko.md) - IR 조회 및 시각화 커맨드라인 도구
 
 ## 의존성
 

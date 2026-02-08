@@ -21,6 +21,9 @@ my_compiler/
 │   ├── executor.py      # IR 실행기
 │   ├── weight_loader.py # Weight 로더
 │   ├── verifier.py      # 검증기
+│   ├── visualize.py     # Mermaid 다이어그램 생성
+│   ├── cli.py           # 커맨드라인 인터페이스
+│   ├── __main__.py      # python -m torch_ir 지원
 │   └── ops/             # 연산자 레지스트리 및 유틸리티
 │       ├── __init__.py
 │       ├── registry.py  # 커스텀 연산자 등록 메커니즘
@@ -58,9 +61,15 @@ dev = [
     "pytest>=8.0",
     "torchvision>=0.16",
 ]
+rendering = [
+    "mmdc>=0.4",
+]
 safetensors = [
     "safetensors>=0.4",
 ]
+
+[project.scripts]
+torch-ir = "torch_ir.cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -170,5 +179,5 @@ print(f"CUDA version: {torch.version.cuda}")
 환경 설정이 완료되면:
 
 1. [사용 가이드](usage.md)를 읽고 기본 사용법 학습
-2. [examples/](../examples/) 디렉토리의 예제 실행
+2. [예제](example.md) 페이지에서 IR 추출 예제 확인
 3. [API 레퍼런스](api/index.md)에서 상세 API 확인

@@ -13,6 +13,9 @@ dev = [
     "torchvision>=0.16",
     "ruff>=0.4",
 ]
+rendering = [
+    "mmdc>=0.4",
+]
 safetensors = [
     "safetensors>=0.4",
 ]
@@ -22,6 +25,9 @@ docs = [
     "mkdocstrings[python]>=0.27",
     "mkdocs-static-i18n>=1.0",
 ]
+
+[project.scripts]
+torch-ir = "torch_ir.cli:main"
 
 [build-system]
 requires = ["hatchling"]

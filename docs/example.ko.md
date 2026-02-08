@@ -152,6 +152,21 @@ print(mermaid_str)
 mermaid_str = ir_to_mermaid(ir, max_nodes=20)
 ```
 
+??? example "ir_to_mermaid() 출력 결과"
+
+    ```text
+    flowchart TD
+        input_x[/"Input: x<br/>1x4"/]
+        op_linear["linear<br/>1x8"]
+        input_x -->|"1x4"| op_linear
+        op_relu["relu<br/>1x8"]
+        op_linear -->|"1x8"| op_relu
+        op_linear_1["linear<br/>1x2"]
+        op_relu -->|"1x8"| op_linear_1
+        output_0[\"Output<br/>1x2"/]
+        op_linear_1 --> output_0
+    ```
+
 연산자 분포 파이 차트도 생성할 수 있습니다:
 
 ```python
@@ -160,5 +175,14 @@ from torch_ir import generate_op_distribution_pie
 pie_chart = generate_op_distribution_pie(ir)
 print(pie_chart)
 ```
+
+??? example "generate_op_distribution_pie() 출력 결과"
+
+    ```mermaid
+    pie showData
+        title "Operator Distribution"
+        "linear" : 2
+        "relu" : 1
+    ```
 
 자세한 API는 [Visualize API 레퍼런스](api/visualize.md)를 참조하세요.

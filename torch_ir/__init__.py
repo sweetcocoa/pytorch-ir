@@ -139,13 +139,16 @@ def extract_ir(
         ConversionError: If IR conversion fails (in strict mode).
 
     Example:
-        >>> import torch
-        >>> from torch_ir import extract_ir
-        >>> with torch.device('meta'):
-        ...     model = torch.nn.Linear(10, 5)
-        >>> inputs = (torch.randn(1, 10, device='meta'),)
-        >>> ir = extract_ir(model, inputs)
-        >>> print(f"Extracted {len(ir.nodes)} nodes")
+        ```python
+        import torch
+        from torch_ir import extract_ir
+
+        with torch.device('meta'):
+            model = torch.nn.Linear(10, 5)
+        inputs = (torch.randn(1, 10, device='meta'),)
+        ir = extract_ir(model, inputs)
+        print(f"Extracted {len(ir.nodes)} nodes")
+        ```
     """
     # Export model using torch.export
     exported = export_model(model, example_inputs, strict=strict)

@@ -564,7 +564,133 @@ class MyCustomModel(nn.Module):
         return self.conv(x)
 ```
 
-## 10. Next Steps
+## 10. CLI Tools
+
+The `torch-ir` CLI allows you to inspect and visualize IR files directly from the terminal without writing Python code.
+
+### 10.1 IR Summary
+
+```bash
+# Display IR summary
+torch-ir info model_ir.json
+
+# JSON format output
+torch-ir info model_ir.json --json
+
+# Save to file
+torch-ir info model_ir.json --json -o summary.json
+```
+
+For example, a DeepResNet model with 3 residual blocks:
+
+```
+Model: DeepResNet
+Nodes: 27
+Inputs: 1
+Outputs: 1
+Weights: 51
+Total parameters: 57,617
+
+Input shapes:
+  x: [1, 3, 32, 32]
+
+Output shapes:
+  linear: [1, 10]
+
+Op distribution:
+  aten.conv2d.default: 7
+  aten.batch_norm.default: 7
+  aten.relu.default: 7
+  aten.add.Tensor: 3
+  aten.adaptive_avg_pool2d.default: 1
+  aten.flatten.using_ints: 1
+  aten.linear.default: 1
+```
+
+### 10.2 Graph Visualization
+
+```bash
+# Print Mermaid diagram to stdout
+torch-ir visualize model_ir.json
+
+# Save as Mermaid text file
+torch-ir visualize model_ir.json -o graph.mmd
+
+# Render as PNG/SVG image (requires: pip install torch-ir[rendering])
+torch-ir visualize model_ir.json -o graph.png
+torch-ir visualize model_ir.json -o graph.svg
+
+# Limit displayed nodes for large graphs
+torch-ir visualize model_ir.json --max-nodes 50
+```
+
+Below is the actual IR graph of a TransformerBlock (self-attention + FFN + residual connections).
+The Q/K/V projections branch out in parallel, and `add.Tensor` nodes represent residual connections:
+
+```mermaid
+flowchart TD
+    input_x[/"Input: x<br/>1x16x64"/]
+    op_linear["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear
+    op_linear_1["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_1
+    op_linear_2["linear<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_linear_2
+    op_view["view<br/>1x16x4x16"]
+    op_linear -->|"1x16x64"| op_view
+    op_transpose["transpose.int<br/>1x4x16x16"]
+    op_view -->|"1x16x4x16"| op_transpose
+    op_view_1["view<br/>1x16x4x16"]
+    op_linear_1 -->|"1x16x64"| op_view_1
+    op_transpose_1["transpose.int<br/>1x4x16x16"]
+    op_view_1 -->|"1x16x4x16"| op_transpose_1
+    op_view_2["view<br/>1x16x4x16"]
+    op_linear_2 -->|"1x16x64"| op_view_2
+    op_transpose_2["transpose.int<br/>1x4x16x16"]
+    op_view_2 -->|"1x16x4x16"| op_transpose_2
+    op_transpose_3["transpose.int<br/>1x4x16x16"]
+    op_transpose_1 -->|"1x4x16x16"| op_transpose_3
+    op_matmul["matmul<br/>1x4x16x16"]
+    op_transpose -->|"1x4x16x16"| op_matmul
+    op_transpose_3 -->|"1x4x16x16"| op_matmul
+    op_div["div.Tensor<br/>1x4x16x16"]
+    op_matmul -->|"1x4x16x16"| op_div
+    op_softmax["softmax.int<br/>1x4x16x16"]
+    op_div -->|"1x4x16x16"| op_softmax
+    op_matmul_1["matmul<br/>1x4x16x16"]
+    op_softmax -->|"1x4x16x16"| op_matmul_1
+    op_transpose_2 -->|"1x4x16x16"| op_matmul_1
+    op_transpose_4["transpose.int<br/>1x16x4x16"]
+    op_matmul_1 -->|"1x4x16x16"| op_transpose_4
+    op_contiguous["contiguous<br/>1x16x4x16"]
+    op_transpose_4 -->|"1x16x4x16"| op_contiguous
+    op_view_3["view<br/>1x16x64"]
+    op_contiguous -->|"1x16x4x16"| op_view_3
+    op_linear_3["linear<br/>1x16x64"]
+    op_view_3 -->|"1x16x64"| op_linear_3
+    op_add["add.Tensor<br/>1x16x64"]
+    input_x -->|"1x16x64"| op_add
+    op_linear_3 -->|"1x16x64"| op_add
+    op_layer_norm["layer_norm<br/>1x16x64"]
+    op_add -->|"1x16x64"| op_layer_norm
+    op_linear_4["linear<br/>1x16x256"]
+    op_layer_norm -->|"1x16x64"| op_linear_4
+    op_gelu["gelu<br/>1x16x256"]
+    op_linear_4 -->|"1x16x256"| op_gelu
+    op_linear_5["linear<br/>1x16x64"]
+    op_gelu -->|"1x16x256"| op_linear_5
+    op_add_1["add.Tensor<br/>1x16x64"]
+    op_layer_norm -->|"1x16x64"| op_add_1
+    op_linear_5 -->|"1x16x64"| op_add_1
+    op_layer_norm_1["layer_norm<br/>1x16x64"]
+    op_add_1 -->|"1x16x64"| op_layer_norm_1
+    output_0[\"Output<br/>1x16x64"/]
+    op_layer_norm_1 --> output_0
+```
+
+For full CLI documentation, see the [CLI Reference](cli.md).
+
+## 11. Next Steps
 
 - [API Reference](api/index.md) - Detailed API documentation
 - [Operator Support](operators.md) - List of supported operators

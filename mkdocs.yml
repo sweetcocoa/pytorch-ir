@@ -46,6 +46,7 @@ plugins:
             Operator Support: 연산자 지원
             Extension Guide: 확장 가이드
             Example: 예제
+            CLI Reference: CLI 레퍼런스
             API Reference: API 레퍼런스
             Overview: 개요
             IR Data Structures: IR 데이터 구조
@@ -88,6 +89,7 @@ nav:
       - Operator Support: operators.md
       - Extension Guide: extending.md
       - Example: example.md
+      - CLI Reference: cli.md
   - API Reference:
       - Overview: api/index.md
       - IR Data Structures: api/ir.md
@@ -99,3 +101,4 @@ nav:
       - Weight Loader: api/weight_loader.md
       - Ops: api/ops.md
       - Visualize: api/visualize.md
+      - CLI: api/cli.md
