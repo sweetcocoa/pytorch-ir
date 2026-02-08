@@ -148,7 +148,7 @@ class CrossAttention(nn.Module):
 class FeedForward(nn.Module):
     """Feed-forward network for transformer."""
 
-    def __init__(self, d_model: int, d_ff: int = None):
+    def __init__(self, d_model: int, d_ff: int | None = None):
         super().__init__()
         d_ff = d_ff or d_model * 4
         self.linear1 = nn.Linear(d_model, d_ff)
@@ -175,7 +175,7 @@ class TransformerBlock(nn.Module):
         - Add & LayerNorm (residual connection)
     """
 
-    def __init__(self, d_model: int = 64, num_heads: int = 4, d_ff: int = None):
+    def __init__(self, d_model: int = 64, num_heads: int = 4, d_ff: int | None = None):
         super().__init__()
 
         # Self-attention

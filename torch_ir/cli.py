@@ -37,11 +37,10 @@ def _write_output(text: str, path: Optional[str]) -> None:
 def _render_mermaid_image(mermaid_text: str, output_path: str) -> None:
     """Render Mermaid text to an image file using mmdc."""
     try:
-        from mmdc import MermaidConverter
+        from mmdc import MermaidConverter  # ty: ignore[unresolved-import]
     except ImportError:
         print(
-            "Error: image rendering requires the 'mmdc' package.\n"
-            "Install it with: pip install torch-ir[rendering]",
+            "Error: image rendering requires the 'mmdc' package.\nInstall it with: pip install torch-ir[rendering]",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -50,10 +49,16 @@ def _render_mermaid_image(mermaid_text: str, output_path: str) -> None:
     ext = Path(output_path).suffix.lower()
     if ext == ".png":
         data = converter.to_png(mermaid_text)
+        if data is None:
+            print("Error: failed to render PNG", file=sys.stderr)
+            sys.exit(1)
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_bytes(data)
     elif ext == ".svg":
         data = converter.to_svg(mermaid_text)
+        if data is None:
+            print("Error: failed to render SVG", file=sys.stderr)
+            sys.exit(1)
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         Path(output_path).write_text(data)
 
@@ -140,10 +145,15 @@ def create_parser() -> argparse.ArgumentParser:
     vis_parser = subparsers.add_parser("visualize", help="Visualize IR graph as Mermaid diagram")
     vis_parser.add_argument("ir_file", help="Path to IR JSON file")
     vis_parser.add_argument(
-        "--max-nodes", type=int, default=30, help="Maximum number of nodes to display (default: 30)",
+        "--max-nodes",
+        type=int,
+        default=30,
+        help="Maximum number of nodes to display (default: 30)",
     )
     vis_parser.add_argument(
-        "-o", "--output", default=None,
+        "-o",
+        "--output",
+        default=None,
         help="Output file (.png/.svg for image, others for Mermaid text)",
     )
 

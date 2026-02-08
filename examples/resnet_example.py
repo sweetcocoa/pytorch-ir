@@ -7,8 +7,8 @@ Requires: pip install torchvision
 import torch
 
 try:
-    import torchvision
-    from torchvision.models import resnet18, ResNet18_Weights
+    import torchvision  # noqa: F401
+    from torchvision.models import ResNet18_Weights, resnet18
 
     HAS_TORCHVISION = True
 except ImportError:
@@ -50,7 +50,7 @@ def main():
     # 4. Extract IR
     print("\n4. Extracting IR (this may take a moment)...")
     ir = extract_ir(meta_model, example_inputs, model_name="ResNet18")
-    print(f"   Extracted IR:")
+    print("   Extracted IR:")
     print(f"     - Model name: {ir.model_name}")
     print(f"     - Number of nodes: {len(ir.nodes)}")
     print(f"     - Number of weights: {len(ir.weights)}")

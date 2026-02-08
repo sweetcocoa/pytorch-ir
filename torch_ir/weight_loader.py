@@ -71,7 +71,7 @@ def load_weights_safetensors(path: Union[str, Path]) -> Dict[str, torch.Tensor]:
         ImportError: If safetensors is not installed.
     """
     try:
-        from safetensors.torch import load_file
+        from safetensors.torch import load_file  # ty: ignore[unresolved-import]
     except ImportError:
         raise ImportError(
             "safetensors package is required for loading .safetensors files.\nInstall it with: pip install safetensors"

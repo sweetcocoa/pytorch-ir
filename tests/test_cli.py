@@ -13,16 +13,25 @@ from torch_ir.ir import IR, OpNode, TensorMeta
 def sample_ir_file(tmp_path):
     """Create a sample IR JSON file for testing."""
     conv_out = TensorMeta(
-        name="conv_out", shape=(1, 64, 112, 112), dtype="float32",
-        producer_node="conv", producer_output_idx=0,
+        name="conv_out",
+        shape=(1, 64, 112, 112),
+        dtype="float32",
+        producer_node="conv",
+        producer_output_idx=0,
     )
     relu_out = TensorMeta(
-        name="relu_out", shape=(1, 64, 112, 112), dtype="float32",
-        producer_node="relu", producer_output_idx=0,
+        name="relu_out",
+        shape=(1, 64, 112, 112),
+        dtype="float32",
+        producer_node="relu",
+        producer_output_idx=0,
     )
     output_0 = TensorMeta(
-        name="output_0", shape=(1, 10), dtype="float32",
-        producer_node="linear", producer_output_idx=0,
+        name="output_0",
+        shape=(1, 10),
+        dtype="float32",
+        producer_node="linear",
+        producer_output_idx=0,
     )
     ir = IR(
         model_name="TestModel",

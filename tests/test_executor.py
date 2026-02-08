@@ -30,7 +30,9 @@ class TestTensorRegistry:
         registry.register("test", t)
 
         assert registry.has("test")
-        assert torch.equal(registry.get("test"), t)
+        result = registry.get("test")
+        assert result is not None
+        assert torch.equal(result, t)
 
     def test_getitem(self):
         """Test __getitem__ access."""

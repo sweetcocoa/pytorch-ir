@@ -60,7 +60,7 @@ def main():
     # 4. Extract IR
     print("\n4. Extracting IR from meta model...")
     ir = extract_ir(meta_model, example_inputs, model_name="SimpleConvNet")
-    print(f"   Extracted IR:")
+    print("   Extracted IR:")
     print(f"     - Model name: {ir.model_name}")
     print(f"     - PyTorch version: {ir.pytorch_version}")
     print(f"     - Number of nodes: {len(ir.nodes)}")
