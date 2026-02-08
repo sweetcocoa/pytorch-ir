@@ -2,6 +2,12 @@
 
 # IR Extraction Framework
 
+[![PyPI](https://img.shields.io/pypi/v/pytorch-ir)](https://pypi.org/project/pytorch-ir/)
+[![Python](https://img.shields.io/pypi/pyversions/pytorch-ir)](https://pypi.org/project/pytorch-ir/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Docs](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/docs.yml?label=docs)](https://sweetcocoa.github.io/pytorch-ir/)
+[![Publish](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/publish.yml?label=publish)](https://github.com/sweetcocoa/pytorch-ir/actions/workflows/publish.yml)
+
 PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
 
 ## 빠른 시작

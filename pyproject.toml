@@ -3,6 +3,7 @@ name = "pytorch-ir"
 dynamic = ["version"]
 description = "PyTorch IR extraction framework for compiler backends"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.1",

@@ -2,6 +2,12 @@
 
 # IR Extraction Framework
 
+[![PyPI](https://img.shields.io/pypi/v/pytorch-ir)](https://pypi.org/project/pytorch-ir/)
+[![Python](https://img.shields.io/pypi/pyversions/pytorch-ir)](https://pypi.org/project/pytorch-ir/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Docs](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/docs.yml?label=docs)](https://sweetcocoa.github.io/pytorch-ir/)
+[![Publish](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/publish.yml?label=publish)](https://github.com/sweetcocoa/pytorch-ir/actions/workflows/publish.yml)
+
 A framework for extracting compiler-backend IR (Intermediate Representation) from PyTorch models.
 
 ## Quick Start
