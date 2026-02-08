@@ -1,16 +1,15 @@
-# API Reference
+# API 레퍼런스
 
-Public API documentation for the NPU IR framework.
+NPU IR 프레임워크의 공개 API 문서입니다.
 
-## Main Entry Point
+!!! info
+    API 문서는 소스 코드 docstring에서 자동 생성됩니다. 전체 API 레퍼런스는 [영문 페이지](../api/index.md)를 참조하세요.
 
-::: npu_ir.extract_ir
+## 모듈 목록
 
-## Module List
-
-| Module | Description |
-|--------|-------------|
-| [IR Data Structures](ir.md) | `TensorMeta`, `OpNode`, `NPU_IR` |
+| 모듈 | 설명 |
+|------|------|
+| [IR 데이터 구조](ir.md) | `TensorMeta`, `OpNode`, `NPU_IR` |
 | [Exporter](exporter.md) | `export_model`, `ExportError` |
 | [Converter](converter.md) | `IRConverter`, `ConversionError`, `convert_exported_program` |
 | [Executor](executor.md) | `IRExecutor`, `execute_ir`, `ExecutionError` |

@@ -1,43 +1,43 @@
-# 환경 설정
+# Environment Setup
 
-이 문서는 NPU IR 프레임워크의 개발 환경 구성 방법을 설명합니다.
+This document explains how to configure the development environment for the NPU IR framework.
 
 !!! note
-    기본 설치 방법은 [Home](index.md)을 참고하세요.
+    For basic installation instructions, see [Home](index.md).
 
-## 1. 개발 환경 구성
+## 1. Development Environment Setup
 
-### 1.1 프로젝트 구조
+### 1.1 Project Structure
 
 ```
 my_compiler/
-├── npu_ir/              # 메인 패키지
-│   ├── __init__.py      # 공개 API
-│   ├── ir.py            # IR 데이터 구조
-│   ├── exporter.py      # torch.export 래핑
-│   ├── analyzer.py      # 그래프 분석
-│   ├── converter.py     # IR 변환
-│   ├── serializer.py    # JSON 직렬화
-│   ├── executor.py      # IR 실행기
-│   ├── weight_loader.py # Weight 로더
-│   ├── verifier.py      # 검증기
-│   └── ops/             # 연산자 레지스트리 및 유틸리티
+├── npu_ir/              # Main package
+│   ├── __init__.py      # Public API
+│   ├── ir.py            # IR data structures
+│   ├── exporter.py      # torch.export wrapper
+│   ├── analyzer.py      # Graph analysis
+│   ├── converter.py     # IR conversion
+│   ├── serializer.py    # JSON serialization
+│   ├── executor.py      # IR executor
+│   ├── weight_loader.py # Weight loader
+│   ├── verifier.py      # Verifier
+│   └── ops/             # Operator registry and utilities
 │       ├── __init__.py
-│       ├── registry.py  # 커스텀 연산자 등록 메커니즘
-│       ├── aten_ops.py  # op 타입 문자열 정규화 유틸리티
-│       └── aten_impl.py # non-ATen op 실행 (getitem)
-├── tests/               # 테스트 코드
+│       ├── registry.py  # Custom operator registration mechanism
+│       ├── aten_ops.py  # Op type string normalization utilities
+│       └── aten_impl.py # Non-ATen op execution (getitem)
+├── tests/               # Test code
 │   ├── test_exporter.py
 │   ├── test_analyzer.py
 │   ├── test_converter.py
 │   ├── test_executor.py
 │   ├── test_verifier.py
 │   └── test_models.py
-├── examples/            # 예제 코드
+├── examples/            # Example code
 │   ├── basic_usage.py
 │   └── resnet_example.py
-├── docs/                # 문서
-├── pyproject.toml       # 프로젝트 설정
+├── docs/                # Documentation
+├── pyproject.toml       # Project configuration
 └── README.md
 ```
 
@@ -72,7 +72,7 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 ```
 
-### 1.3 IDE 설정
+### 1.3 IDE Configuration
 
 #### VS Code
 
@@ -89,75 +89,75 @@ python_functions = ["test_*"]
 #### PyCharm
 
 1. File → Settings → Project → Python Interpreter
-2. `.venv` 가상환경 선택
-3. Run → Edit Configurations → pytest 추가
+2. Select `.venv` virtual environment
+3. Run → Edit Configurations → Add pytest
 
-## 2. 문제 해결
+## 2. Troubleshooting
 
-### 2.1 torch.export 오류
+### 2.1 torch.export Errors
 
-**증상**: `torch.export.export()` 호출 시 오류
+**Symptom**: Error when calling `torch.export.export()`
 
-**해결**:
+**Solution**:
 ```python
-# PyTorch 버전 확인
+# Check PyTorch version
 import torch
-print(torch.__version__)  # 2.1.0 이상이어야 함
+print(torch.__version__)  # Must be 2.1.0 or higher
 
-# torch.export 사용 가능 확인
+# Verify torch.export is available
 from torch.export import export
 ```
 
-### 2.2 Meta device 오류
+### 2.2 Meta Device Errors
 
-**증상**: `RuntimeError: meta tensors are not supported`
+**Symptom**: `RuntimeError: meta tensors are not supported`
 
-**해결**:
+**Solution**:
 ```python
-# 올바른 meta tensor 생성
+# Correct meta tensor creation
 with torch.device('meta'):
     model = MyModel()
 
-# 또는
+# Or
 model = MyModel()
 model = model.to('meta')
 ```
 
-### 2.3 Import 오류
+### 2.3 Import Errors
 
-**증상**: `ModuleNotFoundError: No module named 'npu_ir'`
+**Symptom**: `ModuleNotFoundError: No module named 'npu_ir'`
 
-**해결**:
+**Solution**:
 ```bash
-# 개발 모드로 재설치
+# Reinstall in development mode
 pip install -e .
 
-# Python 경로 확인
+# Check Python path
 python -c "import sys; print(sys.path)"
 ```
 
-### 2.4 NumPy 경고
+### 2.4 NumPy Warnings
 
-**증상**: `UserWarning: Failed to initialize NumPy`
+**Symptom**: `UserWarning: Failed to initialize NumPy`
 
-**해결**:
+**Solution**:
 ```bash
-# NumPy 설치 (선택사항, 경고만 있고 기능에 문제 없음)
+# Install NumPy (optional, warning only and does not affect functionality)
 pip install numpy
 ```
 
-## 3. GPU 환경 (선택사항)
+## 3. GPU Environment (Optional)
 
-IR 추출은 meta device만 사용하므로 GPU가 필수는 아닙니다. 그러나 검증 시 GPU를 사용하면 속도가 향상됩니다.
+GPU is not required for IR extraction as it only uses the meta device. However, using a GPU during verification can improve performance.
 
-### 3.1 CUDA 환경
+### 3.1 CUDA Environment
 
 ```bash
-# CUDA 버전에 맞는 PyTorch 설치
+# Install PyTorch for your CUDA version
 pip install torch --index-url https://download.pytorch.org/whl/cu121
 ```
 
-### 3.2 GPU 검증
+### 3.2 GPU Verification
 
 ```python
 import torch
@@ -165,10 +165,10 @@ print(f"CUDA available: {torch.cuda.is_available()}")
 print(f"CUDA version: {torch.version.cuda}")
 ```
 
-## 4. 다음 단계
+## 4. Next Steps
 
-환경 설정이 완료되면:
+After completing environment setup:
 
-1. [사용 가이드](usage.md)를 읽고 기본 사용법 학습
-2. [examples/](../examples/) 디렉토리의 예제 실행
-3. [API 레퍼런스](api/index.md)에서 상세 API 확인
+1. Read the [Usage Guide](usage.md) to learn basic usage
+2. Run examples in the [examples/](../examples/) directory
+3. Check detailed API in the [API Reference](api/index.md)

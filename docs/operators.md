@@ -1,63 +1,63 @@
-# 연산자 지원
+# Operator Support
 
-이 문서는 NPU IR 프레임워크의 연산자 처리 방식을 설명합니다.
+This document explains how the NPU IR framework handles operators.
 
-## 1. 개요
+## 1. Overview
 
-프레임워크는 **모든 ATen 연산자를 자동으로 지원**합니다.
+The framework **automatically supports all ATen operators**.
 
-- **IR 변환**: `_default_conversion()`이 모든 FX 노드를 `OpNode`로 변환
-- **실행**: `_aten_fallback()`이 PyTorch의 op schema를 참조하여 `torch.ops.aten.*`을 직접 호출
+- **IR Conversion**: `_default_conversion()` converts all FX nodes to `OpNode`s
+- **Execution**: `_aten_fallback()` directly calls `torch.ops.aten.*` by referencing PyTorch's op schema
 
-개별 연산자마다 변환 함수나 실행 함수를 구현할 필요가 없습니다. PyTorch가 지원하는 모든 ATen op이 자동으로 동작합니다.
+There is no need to implement conversion or execution functions for individual operators. All ATen ops supported by PyTorch work automatically.
 
-## 2. ATen Fallback 동작 방식
+## 2. How ATen Fallback Works
 
-### 2.1 Schema 기반 인자 재구성
+### 2.1 Schema-based Argument Reconstruction
 
-ATen fallback은 다음 과정으로 op을 실행합니다:
+ATen fallback executes ops through the following process:
 
-1. `op_type` 문자열(예: `aten.conv2d.default`)에서 `torch.ops.aten.conv2d.default` 함수를 resolve
-2. 함수의 `_schema`를 참조하여 인자 타입 정보를 가져옴
-3. IR의 flat tensor 입력 목록과 `attrs`를 schema에 맞게 positional/keyword 인자로 재구성
-4. 함수를 호출하고 결과를 정규화
+1. Resolve the `torch.ops.aten.conv2d.default` function from the `op_type` string (e.g., `aten.conv2d.default`)
+2. Get argument type information by referencing the function's `_schema`
+3. Reconstruct the flat tensor input list and `attrs` from IR into positional/keyword arguments according to the schema
+4. Call the function and normalize the result
 
-### 2.2 지원하는 인자 타입
+### 2.2 Supported Argument Types
 
-| Schema 타입 | 처리 방식 |
+| Schema Type | Handling |
 |------------|----------|
-| `Tensor` | 입력 텐서 목록에서 순서대로 할당. 부족하면 attrs에서 스칼라 값 대체 |
-| `Tensor[]`, `List[Tensor]` | `_tensor_list_sizes`로 정확한 그룹 크기 결정 |
-| `Tensor?[]`, `List[Optional[Tensor]]` | `_tensor_list_none_masks`로 None 위치 복원 |
-| `Tensor?`, `Optional[Tensor]` | 입력 텐서가 있으면 할당, 없으면 attrs 확인 후 None |
-| 기타 (int, float, bool 등) | `attrs`에서 이름으로 조회 |
-| kwarg_only | `kwargs` dict로 전달 (positional이 아님) |
+| `Tensor` | Assigned sequentially from input tensor list. If insufficient, substitute with scalar value from attrs |
+| `Tensor[]`, `List[Tensor]` | Determine exact group size using `_tensor_list_sizes` |
+| `Tensor?[]`, `List[Optional[Tensor]]` | Restore None positions using `_tensor_list_none_masks` |
+| `Tensor?`, `Optional[Tensor]` | Assign if input tensor exists, otherwise check attrs and use None |
+| Others (int, float, bool, etc.) | Look up by name in `attrs` |
+| kwarg_only | Pass as `kwargs` dict (not positional) |
 
-### 2.3 특수 처리
+### 2.3 Special Handling
 
-- **Scalar binary ops**: `x * 0.5` 같은 경우, schema상 `Tensor other`이지만 실제로는 스칼라. 텐서 입력이 부족하면 attrs에서 값을 가져옴
-- **Device 치환**: attrs의 `device: meta`를 `device: cpu`로 자동 변환 (텐서 생성 op용)
-- **Tensor?[] None 복원**: `aten.index.Tensor`의 `[None, idx_tensor]` 같은 패턴에서 None 위치를 정확히 복원
+- **Scalar binary ops**: For cases like `x * 0.5`, the schema specifies `Tensor other` but it's actually a scalar. If tensor inputs are insufficient, fetch the value from attrs
+- **Device substitution**: Automatically convert `device: meta` in attrs to `device: cpu` (for tensor creation ops)
+- **Tensor?[] None restoration**: Accurately restore None positions in patterns like `[None, idx_tensor]` in `aten.index.Tensor`
 
-## 3. 지원 범위
+## 3. Support Coverage
 
-**모든 ATen 연산자가 스키마 기반으로 자동 지원됩니다.** `torch.ops.aten.*`에 등록된 연산자라면 별도의 구현 없이 IR 변환과 실행이 가능합니다.
+**All ATen operators are automatically supported via schema-based approach.** Any operator registered in `torch.ops.aten.*` can be converted to IR and executed without separate implementation.
 
-Convolution, Linear, Activation, Normalization, Pooling, Elementwise, Shape 변환, Reduction, Softmax/Attention, Embedding, Indexing, Comparison, RNN 등 PyTorch의 모든 표준 연산자 카테고리가 포함됩니다.
+This includes all standard PyTorch operator categories: Convolution, Linear, Activation, Normalization, Pooling, Elementwise, Shape transformation, Reduction, Softmax/Attention, Embedding, Indexing, Comparison, RNN, etc.
 
-## 4. Non-ATen 연산자
+## 4. Non-ATen Operators
 
-ATen fallback이 처리할 수 없는 연산자는 커스텀 실행 함수가 필요합니다.
+Operators that ATen fallback cannot handle require custom execution functions.
 
-현재 등록된 non-ATen 실행 함수:
+Currently registered non-ATen execution functions:
 
-| 연산자 | 설명 |
+| Operator | Description |
 |--------|------|
-| `<built-in function getitem>` | 다중 출력 op에서 특정 출력을 선택 (예: `max(dim=1)` → values, indices) |
+| `<built-in function getitem>` | Select specific output from multi-output op (e.g., `max(dim=1)` → values, indices) |
 
-## 5. 커스텀 연산자 추가
+## 5. Adding Custom Operators
 
-ATen에 없는 연산자를 사용하는 경우에만 수동 등록이 필요합니다:
+Manual registration is only needed when using operators not in ATen:
 
 ```python
 from npu_ir.ops import register_executor
@@ -68,20 +68,20 @@ def execute_my_op(inputs, attrs):
     return [result]
 ```
 
-ATen 연산자는 등록 없이 자동으로 동작합니다. 자세한 내용은 [확장 가이드](extending.md)를 참조하세요.
+ATen operators work automatically without registration. See the [Extension Guide](extending.md) for details.
 
-## 6. 등록된 연산자 확인
+## 6. Checking Registered Operators
 
 ```python
 from npu_ir import list_registered_ops
 
 ops = list_registered_ops()
-print("Custom conversion ops:", len(ops['conversion']))  # 사용자 등록 수
-print("Custom execution ops:", len(ops['execution']))    # getitem + 사용자 등록 수
+print("Custom conversion ops:", len(ops['conversion']))  # User-registered count
+print("Custom execution ops:", len(ops['execution']))    # getitem + user-registered count
 ```
 
-## 7. 알려진 제한사항
+## 7. Known Limitations
 
-- **Mixed precision**: `x.half()` 후 float32 weight를 사용하는 경우, ATen op이 자동 캐스팅하지 않아 dtype mismatch 발생 가능
-- **Dynamic shapes**: `SymInt` 차원은 `convert_exported_program()` 단계에서 차단됨
-- **Meta device 상수**: `forward()`에서 `torch.tensor(...)` 생성 시 meta device에서는 데이터가 없어 `ConversionError` 발생. `self.register_buffer()` 사용 권장
+- **Mixed precision**: When using `x.half()` followed by float32 weights, dtype mismatch may occur as ATen ops don't auto-cast
+- **Dynamic shapes**: `SymInt` dimensions are blocked at the `convert_exported_program()` stage
+- **Meta device constants**: Creating `torch.tensor(...)` in `forward()` causes `ConversionError` on meta device due to missing data. Use `self.register_buffer()` instead

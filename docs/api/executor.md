@@ -1,5 +1,5 @@
 # Executor
 
-IR 그래프를 실제 weight와 함께 실행하는 모듈입니다.
+Module that executes IR graphs with actual weights.
 
 ::: npu_ir.executor

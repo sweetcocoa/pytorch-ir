@@ -1,5 +1,5 @@
 # Exporter
 
-`torch.export`를 래핑하여 모델을 내보내는 모듈입니다.
+Module that wraps `torch.export` to export models.
 
 ::: npu_ir.exporter

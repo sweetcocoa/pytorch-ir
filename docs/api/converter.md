@@ -1,5 +1,5 @@
 # Converter
 
-`ExportedProgram`을 `NPU_IR`로 변환하는 모듈입니다.
+Module that converts `ExportedProgram` to `NPU_IR`.
 
 ::: npu_ir.converter

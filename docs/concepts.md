@@ -1,205 +1,205 @@
-# 개념 및 아키텍처
+# Concepts and Architecture
 
-이 문서는 NPU IR 프레임워크의 핵심 개념과 설계 철학을 설명합니다.
+This document explains the core concepts and design philosophy of the NPU IR framework.
 
-## 1. 개요
+## 1. Overview
 
-### 1.1 목적
+### 1.1 Purpose
 
-NPU IR 프레임워크는 PyTorch 모델에서 NPU 컴파일러가 사용할 수 있는 중간 표현(IR)을 추출합니다. 핵심 목표는 다음과 같습니다:
+The NPU IR framework extracts intermediate representation (IR) from PyTorch models that can be consumed by NPU compilers. The key objectives are:
 
-- **Weight-free 추출**: 실제 weight 값 없이 그래프 구조와 shape/dtype 메타데이터만 추출
-- **표준화된 표현**: ATen 레벨의 저수준 연산으로 분해된 일관된 IR
-- **검증 가능성**: IR의 정확성을 원본 모델과 비교하여 검증
+- **Weight-free extraction**: Extract only graph structure and shape/dtype metadata without actual weight values
+- **Standardized representation**: Consistent IR decomposed into low-level ATen operations
+- **Verifiability**: Validate IR correctness by comparing against the original model
 
-### 1.2 왜 Weight-free인가?
+### 1.2 Why Weight-free?
 
-대규모 모델(LLM 등)의 경우 weight가 수십~수백 GB에 달할 수 있습니다. IR 추출 단계에서는 그래프 구조와 텐서 메타데이터만 필요하므로, weight를 로드하지 않으면:
+For large-scale models (LLMs, etc.), weights can reach tens to hundreds of GB. Since the IR extraction stage only needs graph structure and tensor metadata, not loading weights provides:
 
-- 메모리 사용량 대폭 절감
-- IR 추출 속도 향상
-- 컴파일 파이프라인의 유연성 증가
+- Significant reduction in memory usage
+- Faster IR extraction
+- Increased flexibility in compilation pipeline
 
-## 2. 핵심 개념
+## 2. Core Concepts
 
 ### 2.1 Meta Tensor
 
-PyTorch의 meta device는 shape와 dtype 정보만 가지고 실제 데이터는 없는 "가짜" 텐서를 생성합니다.
+PyTorch's meta device creates "fake" tensors that only have shape and dtype information without actual data.
 
 ```python
-# Meta tensor 생성
+# Create meta tensor
 t = torch.randn(1, 3, 224, 224, device='meta')
 print(t.shape)   # torch.Size([1, 3, 224, 224])
 print(t.dtype)   # torch.float32
 print(t.device)  # device(type='meta')
-# t의 실제 데이터는 존재하지 않음 (메모리 0 사용)
+# t has no actual data (uses 0 memory)
 
-# Meta device에서 모델 생성
+# Create model on meta device
 with torch.device('meta'):
-    model = torch.nn.Linear(1000, 1000)  # 4MB weight가 실제로 할당되지 않음
+    model = torch.nn.Linear(1000, 1000)  # 4MB weight not actually allocated
 ```
 
 ### 2.2 torch.export
 
-`torch.export`는 PyTorch 2.0+에서 도입된 공식 모델 내보내기 API입니다.
+`torch.export` is the official model export API introduced in PyTorch 2.0+.
 
-**특징:**
-- TorchDynamo 기반 Python bytecode 레벨 tracing
-- 내부적으로 FakeTensor 사용 (meta tensor의 subclass)
-- ATen 레벨의 저수준 그래프 생성
-- 정적 shape 분석 및 메타데이터 자동 기록
+**Features:**
+- TorchDynamo-based Python bytecode level tracing
+- Uses FakeTensor internally (subclass of meta tensor)
+- Generates low-level graph at ATen level
+- Static shape analysis and automatic metadata recording
 
-**대안 비교:**
+**Alternative comparison:**
 
-| 방식 | 상태 | 비고 |
-|------|------|------|
-| torch.export | ✅ 권장 | TorchDynamo 기반, 현재 공식 표준 |
-| torch.fx.symbolic_trace | 유지 | 단순한 경우에만 사용 |
-| TorchScript (torch.jit) | ❌ deprecated | 사용하지 말 것 |
+| Method | Status | Notes |
+|--------|--------|-------|
+| torch.export | ✅ Recommended | TorchDynamo-based, current official standard |
+| torch.fx.symbolic_trace | Maintained | Use only for simple cases |
+| TorchScript (torch.jit) | ❌ deprecated | Do not use |
 
 ### 2.3 ExportedProgram
 
-`torch.export.export()`의 반환값으로, 다음 정보를 포함합니다:
+Return value of `torch.export.export()`, containing the following information:
 
 ```python
 exported = torch.export.export(model, example_inputs)
 
-exported.graph_module      # torch.fx.GraphModule (그래프 표현)
-exported.graph_signature   # 입출력 및 파라미터 정보
-exported.state_dict        # 파라미터 (meta tensor면 shape만)
+exported.graph_module      # torch.fx.GraphModule (graph representation)
+exported.graph_signature   # Input/output and parameter information
+exported.state_dict        # Parameters (only shapes if meta tensors)
 ```
 
-### 2.4 NPU_IR 구조
+### 2.4 NPU_IR Structure
 
-프레임워크에서 정의한 IR 데이터 구조입니다. 상세 API는 [IR 데이터 구조 레퍼런스](api/ir.md)를 참고하세요.
+IR data structure defined by the framework. For detailed API, refer to [IR Data Structure Reference](api/ir.md).
 
 ```python
 @dataclass
 class TensorMeta:
-    name: str               # 텐서 이름
-    shape: Tuple[int, ...]  # Shape 정보
-    dtype: str              # "float32", "float16" 등
+    name: str               # Tensor name
+    shape: Tuple[int, ...]  # Shape information
+    dtype: str              # "float32", "float16", etc.
 
 @dataclass
 class OpNode:
-    name: str                   # 노드 고유 이름
-    op_type: str                # "aten.conv2d.default" 등
-    inputs: List[TensorMeta]    # 입력 텐서 메타데이터
-    outputs: List[TensorMeta]   # 출력 텐서 메타데이터
-    attrs: Dict[str, Any]       # 연산 속성 (kernel_size 등)
+    name: str                   # Unique node name
+    op_type: str                # "aten.conv2d.default", etc.
+    inputs: List[TensorMeta]    # Input tensor metadata
+    outputs: List[TensorMeta]   # Output tensor metadata
+    attrs: Dict[str, Any]       # Operation attributes (kernel_size, etc.)
 
 @dataclass
 class NPU_IR:
-    nodes: List[OpNode]              # 연산 노드 리스트
-    graph_inputs: List[TensorMeta]   # 그래프 입력
-    graph_outputs: List[TensorMeta]  # 그래프 출력
-    weights: List[TensorMeta]        # Weight 메타데이터
-    weight_name_mapping: Dict[str, str]  # placeholder → state_dict 키 매핑
+    nodes: List[OpNode]              # List of operation nodes
+    graph_inputs: List[TensorMeta]   # Graph inputs
+    graph_outputs: List[TensorMeta]  # Graph outputs
+    weights: List[TensorMeta]        # Weight metadata
+    weight_name_mapping: Dict[str, str]  # placeholder → state_dict key mapping
     model_name: str
     pytorch_version: str
 ```
 
-## 3. 아키텍처
+## 3. Architecture
 
-### 3.1 IR 추출 파이프라인
+### 3.1 IR Extraction Pipeline
 
 ```mermaid
 flowchart TD
-    A["사용자 API\nextract_ir(model, example_inputs) → NPU_IR"]
-    B["Model Exporter (exporter.py)\nMeta device 검증 · torch.export.export() 호출"]
-    C["Graph Analyzer (analyzer.py)\n그래프 순회 · shape/dtype 메타데이터 추출"]
-    D["IR Converter (converter.py)\nFX node → OpNode 변환 · 연산자 속성 추출"]
-    E["IR Serializer (serializer.py)\nJSON 직렬화 · 검증 및 출력"]
+    A["User API<br/>extract_ir(model, example_inputs) → NPU_IR"]
+    B["Model Exporter (exporter.py)<br/>Meta device validation · torch.export.export() invocation"]
+    C["Graph Analyzer (analyzer.py)<br/>Graph traversal · shape/dtype metadata extraction"]
+    D["IR Converter (converter.py)<br/>FX node → OpNode conversion · operator attribute extraction"]
+    E["IR Serializer (serializer.py)<br/>JSON serialization · validation and output"]
     A --> B --> C --> D --> E
 ```
 
-### 3.2 IR 실행 및 검증 파이프라인
+### 3.2 IR Execution and Verification Pipeline
 
 ```mermaid
 flowchart TD
-    A["검증 API\nverify_ir(ir, weights, original_model, inputs) → bool"]
-    B["원본 모델 실행\n(PyTorch forward)"]
-    C["IR 실행\n(IR Executor)"]
-    D["Output Verifier (verifier.py)\ntorch.allclose() 기반 비교 · 오차 리포트 생성"]
+    A["Verification API<br/>verify_ir(ir, weights, original_model, inputs) → bool"]
+    B["Original Model Execution<br/>(PyTorch forward)"]
+    C["IR Execution<br/>(IR Executor)"]
+    D["Output Verifier (verifier.py)<br/>torch.allclose()-based comparison · error report generation"]
     A --> B & C
     B & C --> D
 ```
 
-### 3.3 컴포넌트 설명
+### 3.3 Component Description
 
-| 컴포넌트 | 파일 | 역할 |
-|---------|------|------|
-| Exporter | `exporter.py` | torch.export 래핑, meta device 검증 |
-| Analyzer | `analyzer.py` | FX 그래프 분석, 메타데이터 추출, schema 기반 속성 추출 |
-| Converter | `converter.py` | FX node → OpNode 변환 (기본 변환기로 모든 op 처리) |
-| Serializer | `serializer.py` | JSON 직렬화/역직렬화 |
-| Executor | `executor.py` | IR 그래프 실행 — ATen fallback으로 모든 ATen op 자동 실행 |
-| Weight Loader | `weight_loader.py` | .pt, .safetensors 파일 로드 |
-| Verifier | `verifier.py` | 원본 vs IR 출력 비교 |
-| Registry | `ops/registry.py` | 커스텀 연산자 등록 메커니즘 |
-| ATen Ops | `ops/aten_ops.py` | op 타입 문자열 정규화 유틸리티 |
-| ATen Impl | `ops/aten_impl.py` | non-ATen op 실행 (getitem만 해당) |
+| Component | File | Role |
+|-----------|------|------|
+| Exporter | `exporter.py` | torch.export wrapper, meta device validation |
+| Analyzer | `analyzer.py` | FX graph analysis, metadata extraction, schema-based attribute extraction |
+| Converter | `converter.py` | FX node → OpNode conversion (default converter handles all ops) |
+| Serializer | `serializer.py` | JSON serialization/deserialization |
+| Executor | `executor.py` | IR graph execution — ATen fallback automatically executes all ATen ops |
+| Weight Loader | `weight_loader.py` | Load .pt, .safetensors files |
+| Verifier | `verifier.py` | Original vs IR output comparison |
+| Registry | `ops/registry.py` | Custom operator registration mechanism |
+| ATen Ops | `ops/aten_ops.py` | Op type string normalization utilities |
+| ATen Impl | `ops/aten_impl.py` | Non-ATen op execution (only getitem applicable) |
 
-## 4. 설계 결정
+## 4. Design Decisions
 
-### 4.1 ATen 레벨 IR
+### 4.1 ATen-level IR
 
-torch.export는 기본적으로 ATen 레벨로 분해합니다. 이는 다음과 같은 장점이 있습니다:
+torch.export decomposes to the ATen level by default. This provides the following advantages:
 
-- **일관성**: 다양한 고수준 API가 동일한 저수준 연산으로 변환
-- **완전성**: 모든 연산이 명시적으로 표현
-- **NPU 친화적**: NPU 컴파일러가 최적화하기 좋은 수준
+- **Consistency**: Various high-level APIs are converted to the same low-level operations
+- **Completeness**: All operations are explicitly represented
+- **NPU-friendly**: Good level for NPU compiler optimization
 
-예시:
+Example:
 ```python
-# nn.Linear(10, 5)(x)는 다음으로 분해:
-# - aten.linear.default 또는
-# - aten.addmm.default (bias 있는 경우)
+# nn.Linear(10, 5)(x) is decomposed to:
+# - aten.linear.default or
+# - aten.addmm.default (when bias is present)
 ```
 
-### 4.2 Schema 기반 ATen Fallback
+### 4.2 Schema-based ATen Fallback
 
-모든 ATen op은 PyTorch의 op schema를 자동으로 참조하여 실행됩니다:
+All ATen ops are automatically executed by referencing PyTorch's op schema:
 
-1. **IR 변환**: `_default_conversion()`이 모든 op을 `OpNode`로 변환 (커스텀 변환 불필요)
-2. **실행**: `_aten_fallback()`이 `torch.ops.aten.*`을 직접 호출 (schema 기반 인자 재구성)
+1. **IR Conversion**: `_default_conversion()` converts all ops to `OpNode` (no custom conversion needed)
+2. **Execution**: `_aten_fallback()` directly calls `torch.ops.aten.*` (schema-based argument reconstruction)
 
-이 설계 덕분에 새로운 ATen op이 추가되어도 프레임워크 코드 변경 없이 자동 지원됩니다.
+Thanks to this design, new ATen ops are automatically supported without framework code changes.
 
-### 4.3 커스텀 연산자 레지스트리
+### 4.3 Custom Operator Registry
 
-non-ATen op이나 특수한 변환/실행이 필요한 경우에만 수동 등록합니다:
+Manual registration is only needed for non-ATen ops or special conversion/execution requirements:
 
 ```python
 from npu_ir.ops import register_executor
 
-# non-ATen op의 실행 함수 등록
+# Register execution function for non-ATen op
 @register_executor("my_custom_op")
 def execute_my_op(inputs, attrs):
     return [result_tensor]
 ```
 
-### 4.3 Weight 이름 매핑
+### 4.3 Weight Name Mapping
 
-torch.export는 파라미터에 `p_` prefix를 사용합니다:
-- FX 그래프: `p_layer_weight`, `p_layer_bias`
+torch.export uses `p_` prefix for parameters:
+- FX graph: `p_layer_weight`, `p_layer_bias`
 - state_dict: `layer.weight`, `layer.bias`
 
-`weight_name_mapping`이 이 변환을 처리합니다.
+`weight_name_mapping` handles this conversion.
 
-## 5. 제한 사항
+## 5. Limitations
 
-### 5.1 지원하지 않는 패턴
+### 5.1 Unsupported Patterns
 
-- **Dynamic shapes**: `SymInt` 차원이 포함된 모델 (정적 shape만 지원)
-- **Dynamic control flow**: 데이터 의존적 if/for문
-- **일부 custom autograd function**
-- **복잡한 Python 동작**: list comprehension, 동적 attribute 등
-- **Meta device 상수**: `forward()`에서 `torch.tensor(...)`로 생성한 상수 (meta device에서 데이터 없음)
+- **Dynamic shapes**: Models with `SymInt` dimensions (only static shapes supported)
+- **Dynamic control flow**: Data-dependent if/for statements
+- **Some custom autograd functions**
+- **Complex Python behavior**: list comprehension, dynamic attributes, etc.
+- **Meta device constants**: Constants created with `torch.tensor(...)` in `forward()` (no data on meta device)
 
-### 5.2 권장 사항
+### 5.2 Recommendations
 
-1. 모델은 반드시 `eval()` 모드로 설정
-2. 입력 모델과 example inputs 모두 meta device 사용
-3. 검증 시 동일한 입력으로 테스트
-4. `forward()`에서 텐서 상수 생성 대신 `self.register_buffer()` 사용
+1. Model must be set to `eval()` mode
+2. Both input model and example inputs should use meta device
+3. Test with the same inputs during verification
+4. Use `self.register_buffer()` instead of creating tensor constants in `forward()`

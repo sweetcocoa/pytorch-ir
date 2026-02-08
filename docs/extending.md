@@ -1,60 +1,60 @@
-# 확장 가이드
+# Extension Guide
 
-이 문서는 NPU IR 프레임워크에 커스텀 연산자를 추가하는 방법을 설명합니다.
+This document explains how to add custom operators to the NPU IR framework.
 
-## 1. 개요
+## 1. Overview
 
-프레임워크는 **모든 ATen 연산자를 자동으로 처리**합니다. 커스텀 등록이 필요한 경우는 다음과 같습니다:
+The framework **automatically handles all ATen operators**. Custom registration is only needed in the following cases:
 
-- **Non-ATen op**: `torch.ops.aten.*`으로 resolve할 수 없는 연산자
-- **특수한 변환 로직**: 기본 변환(`_default_conversion`)과 다른 OpNode 구조가 필요한 경우
-- **특수한 실행 로직**: ATen fallback이 처리할 수 없는 실행 방식이 필요한 경우
+- **Non-ATen op**: Operators that cannot be resolved to `torch.ops.aten.*`
+- **Special conversion logic**: When OpNode structure different from the default conversion (`_default_conversion`) is needed
+- **Special execution logic**: When execution method that ATen fallback cannot handle is required
 
-대부분의 경우 아무 것도 등록하지 않아도 됩니다.
+In most cases, you don't need to register anything.
 
-## 2. 연산자 레지스트리 이해
+## 2. Understanding the Operator Registry
 
-### 2.1 레지스트리 구조
+### 2.1 Registry Structure
 
 ```python
 # npu_ir/ops/registry.py
 
-# IR 변환 함수 저장 (커스텀 변환용)
+# Store IR conversion functions (for custom conversion)
 _CONVERSION_REGISTRY: Dict[str, Callable] = {}
 
-# 실행 함수 저장 (커스텀 실행용)
+# Store execution functions (for custom execution)
 _EXECUTION_REGISTRY: Dict[str, Callable] = {}
 ```
 
-### 2.2 처리 우선순위
+### 2.2 Processing Priority
 
-**IR 변환** (`converter.py`):
-1. `_CONVERSION_REGISTRY`에 등록된 커스텀 변환 함수 확인
-2. 없으면 `_default_conversion()` 사용 (모든 ATen op 자동 처리)
+**IR Conversion** (`converter.py`):
+1. Check for custom conversion function registered in `_CONVERSION_REGISTRY`
+2. If not found, use `_default_conversion()` (automatically handles all ATen ops)
 
-**실행** (`executor.py`):
-1. `_EXECUTION_REGISTRY`에 등록된 커스텀 실행 함수 확인
-2. 없으면 `_aten_fallback()` 사용 (schema 기반 ATen op 자동 실행)
+**Execution** (`executor.py`):
+1. Check for custom execution function registered in `_EXECUTION_REGISTRY`
+2. If not found, use `_aten_fallback()` (schema-based automatic ATen op execution)
 
-### 2.3 연산자 이름 패턴
+### 2.3 Operator Name Patterns
 
-ATen 연산자 이름은 다음 패턴을 따릅니다:
+ATen operator names follow this pattern:
 
 ```
 aten.<op_name>.<overload>
 ```
 
-예시:
+Examples:
 - `aten.conv2d.default`
 - `aten.linear.default`
 - `aten.add.Tensor`
 - `aten.softmax.int`
 
-## 3. 커스텀 실행 함수 등록
+## 3. Registering Custom Execution Functions
 
-ATen fallback이 처리할 수 없는 non-ATen op에 대해서만 필요합니다.
+Only needed for non-ATen ops that ATen fallback cannot handle.
 
-### 3.1 기본 구조
+### 3.1 Basic Structure
 
 ```python
 from npu_ir.ops import register_executor
@@ -70,28 +70,28 @@ def execute_my_custom_op(
     x = inputs[0]
     param = attrs.get("param", 1.0)
     result = some_operation(x, param)
-    return [result]  # 항상 리스트로 반환
+    return [result]  # Always return as list
 ```
 
-### 3.2 입출력 규칙
+### 3.2 Input/Output Rules
 
-- **입력**: `List[torch.Tensor]` - IR 노드의 입력 순서대로
-- **출력**: `List[torch.Tensor]` - IR 노드의 출력 순서대로
-- 단일 출력이라도 리스트로 반환해야 함
+- **Input**: `List[torch.Tensor]` - in the order of IR node inputs
+- **Output**: `List[torch.Tensor]` - in the order of IR node outputs
+- Must return as list even for single output
 
-### 3.3 다중 출력 예시
+### 3.3 Multi-output Example
 
 ```python
 @register_executor("my_op_with_two_outputs")
 def execute_my_op(inputs: List[torch.Tensor], attrs: Dict[str, Any]) -> List[torch.Tensor]:
     x = inputs[0]
     values, indices = x.topk(attrs.get("k", 1), dim=attrs.get("dim", -1))
-    return [values, indices]  # 두 개의 출력
+    return [values, indices]  # Two outputs
 ```
 
-## 4. 커스텀 IR 변환 함수 등록 (선택사항)
+## 4. Registering Custom IR Conversion Functions (Optional)
 
-기본 변환기(`_default_conversion`)가 대부분의 경우 충분하지만, OpNode의 구조를 커스터마이즈하고 싶은 경우:
+The default converter (`_default_conversion`) is sufficient in most cases, but if you want to customize the OpNode structure:
 
 ```python
 from npu_ir.ops import register_op
@@ -110,28 +110,28 @@ def convert_my_custom_op(node_info: NodeInfo) -> OpNode:
     )
 ```
 
-### 4.1 NodeInfo 구조
+### 4.1 NodeInfo Structure
 
-변환 함수는 `NodeInfo` 객체를 받습니다:
+Conversion functions receive a `NodeInfo` object:
 
 ```python
 @dataclass
 class NodeInfo:
-    name: str                       # 노드 이름 (예: "conv2d_1")
-    op: str                         # 연산 종류 ("call_function")
-    target: Any                     # 연산 대상 (예: torch.ops.aten.conv2d.default)
-    args: Tuple[Any, ...]           # FX 노드 인자
-    kwargs: Dict[str, Any]          # FX 노드 키워드 인자
-    input_metas: List[TensorMeta]   # 입력 텐서 메타데이터
-    output_metas: List[TensorMeta]  # 출력 텐서 메타데이터
-    attrs: Dict[str, Any]           # 추출된 속성 (schema 기반 자동 추출)
+    name: str                       # Node name (e.g., "conv2d_1")
+    op: str                         # Operation type ("call_function")
+    target: Any                     # Operation target (e.g., torch.ops.aten.conv2d.default)
+    args: Tuple[Any, ...]           # FX node arguments
+    kwargs: Dict[str, Any]          # FX node keyword arguments
+    input_metas: List[TensorMeta]   # Input tensor metadata
+    output_metas: List[TensorMeta]  # Output tensor metadata
+    attrs: Dict[str, Any]           # Extracted attributes (auto-extracted based on schema)
 ```
 
-### 4.2 속성 자동 추출
+### 4.2 Automatic Attribute Extraction
 
-`node_info.attrs`에는 OpOverload schema 기반으로 모든 non-Tensor 인자가 자동 추출되어 있습니다. 추가 추출 없이 그대로 사용할 수 있습니다.
+`node_info.attrs` contains all non-Tensor arguments automatically extracted based on the OpOverload schema. You can use it as-is without additional extraction.
 
-## 5. 완전한 예시: Non-ATen 커스텀 op
+## 5. Complete Example: Non-ATen Custom Op
 
 ```python
 # my_custom_ops.py
@@ -165,23 +165,23 @@ def execute_fused_gate(
     return [torch.sigmoid(gate) * value]
 ```
 
-### 사용 방법
+### Usage
 
 ```python
-# 커스텀 연산자 모듈 임포트 (등록됨)
+# Import custom operator module (registers it)
 import my_custom_ops
 
 from npu_ir import extract_ir
 ```
 
-## 6. 모듈로 구성하기
+## 6. Organizing as Module
 
 ```
 my_project/
 ├── my_ops/
-│   ├── __init__.py          # 모든 하위 모듈 import
-│   ├── custom_gate.py       # @register_executor 포함
-│   └── custom_pooling.py    # @register_executor 포함
+│   ├── __init__.py          # Import all submodules
+│   ├── custom_gate.py       # Contains @register_executor
+│   └── custom_pooling.py    # Contains @register_executor
 └── main.py
 ```
 
@@ -189,22 +189,22 @@ my_project/
 # my_ops/__init__.py
 from . import custom_gate
 from . import custom_pooling
-# import 시 자동으로 등록됨
+# Automatically registered on import
 ```
 
-## 7. 디버깅 팁
+## 7. Debugging Tips
 
-### 7.1 FX 그래프 확인
+### 7.1 Checking FX Graph
 
 ```python
 from npu_ir import export_model
 
 exported = export_model(model, inputs, strict=False)
 
-# FX 그래프 출력
+# Print FX graph
 print(exported.graph_module.graph)
 
-# 개별 노드 확인
+# Check individual nodes
 for node in exported.graph_module.graph.nodes:
     if node.op == "call_function":
         print(f"Node: {node.name}")
@@ -212,7 +212,7 @@ for node in exported.graph_module.graph.nodes:
         print(f"  Args: {node.args}")
 ```
 
-### 7.2 등록 확인
+### 7.2 Checking Registration
 
 ```python
 from npu_ir.ops.registry import get_conversion_fn, get_execution_fn
@@ -222,7 +222,7 @@ print(f"Conversion: {get_conversion_fn(op_type)}")
 print(f"Execution: {get_execution_fn(op_type)}")
 ```
 
-### 7.3 ATen op schema 확인
+### 7.3 Checking ATen Op Schema
 
 ```python
 import torch
@@ -232,31 +232,31 @@ for arg in fn._schema.arguments:
     print(f"  {arg.name}: {arg.type} (kwarg_only={arg.kwarg_only})")
 ```
 
-## 8. 주의사항
+## 8. Precautions
 
-### 8.1 ATen op은 등록 불필요
+### 8.1 ATen Ops Don't Need Registration
 
-ATen op(`aten.*`)에 대해 `@register_executor`를 등록하면 ATen fallback 대신 커스텀 함수가 호출됩니다. 특별한 이유가 없다면 등록하지 마세요 — fallback이 schema 기반으로 올바르게 처리합니다.
+Registering `@register_executor` for ATen ops (`aten.*`) will call the custom function instead of ATen fallback. Unless you have a specific reason, don't register them — fallback handles them correctly based on schema.
 
-### 8.2 입력 순서
+### 8.2 Input Order
 
-FX 그래프의 입력 순서와 실행 함수의 입력 순서가 일치해야 합니다.
+The input order in the FX graph must match the input order in the execution function.
 
-### 8.3 속성 기본값
+### 8.3 Attribute Defaults
 
-속성이 없을 경우를 대비해 기본값을 제공하세요:
+Provide default values in case attributes are missing:
 
 ```python
 def execute_my_op(inputs, attrs):
-    param = attrs.get("param", 1.0)  # 기본값 제공
+    param = attrs.get("param", 1.0)  # Provide default value
 ```
 
-## 9. 기여 가이드
+## 9. Contribution Guide
 
-프레임워크에 기여하려면:
+To contribute to the framework:
 
-1. Non-ATen op의 실행 함수는 `npu_ir/ops/aten_impl.py`에 추가
-2. `tests/`에 테스트 추가
-3. `docs/operators.md` 문서 업데이트
+1. Add execution functions for non-ATen ops to `npu_ir/ops/aten_impl.py`
+2. Add tests in `tests/`
+3. Update `docs/operators.md` documentation
 
-ATen op은 자동으로 지원되므로 별도 구현이 필요 없습니다.
+ATen ops are automatically supported, so no separate implementation is needed.

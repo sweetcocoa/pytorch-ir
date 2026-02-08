@@ -1,5 +1,5 @@
-# IR 데이터 구조
+# IR Data Structures
 
-IR 그래프를 구성하는 핵심 데이터 구조입니다.
+Core data structures that compose the IR graph.
 
 ::: npu_ir.ir

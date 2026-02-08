@@ -1,5 +1,5 @@
 # Ops
 
-연산자 레지스트리 및 유틸리티 모듈입니다.
+Operator registry and utility module.
 
 ::: npu_ir.ops

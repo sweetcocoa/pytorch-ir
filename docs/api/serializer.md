@@ -1,5 +1,5 @@
 # Serializer
 
-IR의 JSON 직렬화/역직렬화를 담당하는 모듈입니다.
+Module for JSON serialization/deserialization of IR.
 
 ::: npu_ir.serializer

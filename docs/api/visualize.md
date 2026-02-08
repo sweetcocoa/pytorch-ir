@@ -1,5 +1,5 @@
 # Visualize
 
-IR 시각화 유틸리티 모듈입니다.
+IR visualization utilities.
 
 ::: npu_ir.visualize
