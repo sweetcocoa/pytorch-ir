@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 
-from .ir import NPU_IR, OpNode
+from .ir import IR, OpNode
 from .ops.registry import get_execution_fn
 from .weight_loader import load_weights
 
@@ -314,7 +314,7 @@ class IRExecutor:
         outputs = executor.execute((input_tensor,))
     """
 
-    def __init__(self, ir: NPU_IR, weights: Optional[Dict[str, torch.Tensor]] = None):
+    def __init__(self, ir: IR, weights: Optional[Dict[str, torch.Tensor]] = None):
         """Initialize the executor.
 
         Args:
@@ -430,7 +430,7 @@ class IRExecutor:
 
 
 def execute_ir(
-    ir: NPU_IR,
+    ir: IR,
     inputs: Tuple[torch.Tensor, ...],
     weights: Optional[Dict[str, torch.Tensor]] = None,
     weights_path: Optional[Union[str, Path]] = None,

@@ -1,4 +1,4 @@
-"""IR data structures for NPU compiler."""
+"""IR data structures for compiler backends."""
 
 import json
 from dataclasses import dataclass, field
@@ -115,7 +115,7 @@ class OpNode:
 
 
 @dataclass
-class NPU_IR:
+class IR:
     """Complete IR representation of a model.
 
     Attributes:
@@ -164,14 +164,14 @@ class NPU_IR:
         return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "NPU_IR":
+    def from_dict(cls, data: Dict[str, Any]) -> "IR":
         """Deserialize from a dictionary.
 
         Args:
             data: Dictionary produced by ``to_dict()``.
 
         Returns:
-            Reconstructed ``NPU_IR`` instance.
+            Reconstructed ``IR`` instance.
         """
         _dtype_map = {
             "float32": torch.float32,
@@ -208,14 +208,14 @@ class NPU_IR:
             json.dump(self.to_dict(), f, indent=2)
 
     @classmethod
-    def load(cls, path: str) -> "NPU_IR":
+    def load(cls, path: str) -> "IR":
         """Load IR from a JSON file.
 
         Args:
             path: Input file path.
 
         Returns:
-            Deserialized ``NPU_IR`` instance.
+            Deserialized ``IR`` instance.
         """
         with open(path, "r") as f:
             data = json.load(f)
@@ -223,7 +223,7 @@ class NPU_IR:
 
     def __repr__(self) -> str:
         return (
-            f"NPU_IR(model_name='{self.model_name}', "
+            f"IR(model_name='{self.model_name}', "
             f"nodes={len(self.nodes)}, "
             f"inputs={len(self.graph_inputs)}, "
             f"outputs={len(self.graph_outputs)}, "

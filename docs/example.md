@@ -11,7 +11,7 @@ A simple MLP model with `Linear(4, 8) → ReLU → Linear(8, 2)` architecture.
     ```python
     import torch
     import torch.nn as nn
-    from npu_ir import extract_ir
+    from torch_ir import extract_ir
 
     class SimpleMLP(nn.Module):
         def __init__(self):
@@ -136,7 +136,7 @@ A simple MLP model with `Linear(4, 8) → ReLU → Linear(8, 2)` architecture.
 Use the `ir_to_mermaid()` function to convert any IR to a Mermaid diagram:
 
 ```python
-from npu_ir import extract_ir, ir_to_mermaid
+from torch_ir import extract_ir, ir_to_mermaid
 
 # Extract IR
 with torch.device('meta'):
@@ -155,7 +155,7 @@ mermaid_str = ir_to_mermaid(ir, max_nodes=20)
 You can also generate operator distribution pie charts:
 
 ```python
-from npu_ir import generate_op_distribution_pie
+from torch_ir import generate_op_distribution_pie
 
 pie_chart = generate_op_distribution_pie(ir)
 print(pie_chart)

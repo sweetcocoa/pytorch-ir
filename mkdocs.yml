@@ -1,5 +1,5 @@
-site_name: NPU IR Extraction Framework
-site_description: Framework for extracting NPU compiler IR from PyTorch models
+site_name: IR Extraction Framework
+site_description: Framework for extracting IR from PyTorch models for compiler backends
 repo_url: https://github.com/example/torch_to_ir
 repo_name: torch_to_ir
 
@@ -87,7 +87,7 @@ nav:
       - Usage Guide: usage.md
       - Operator Support: operators.md
       - Extension Guide: extending.md
-  - Example: example.md
+      - Example: example.md
   - API Reference:
       - Overview: api/index.md
       - IR Data Structures: api/ir.md

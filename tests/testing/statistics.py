@@ -1,15 +1,15 @@
-"""Statistics collection from NPU IR."""
+"""Statistics collection from IR."""
 
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Set
 
-from npu_ir import NPU_IR
+from torch_ir import IR
 
 
 @dataclass
 class IRStatistics:
-    """Statistics collected from an NPU IR graph.
+    """Statistics collected from an IR graph.
 
     Attributes:
         num_nodes: Total number of operation nodes.
@@ -34,8 +34,8 @@ class IRStatistics:
     total_weight_params: int
 
     @classmethod
-    def from_ir(cls, ir: NPU_IR) -> "IRStatistics":
-        """Collect statistics from an NPU IR.
+    def from_ir(cls, ir: IR) -> "IRStatistics":
+        """Collect statistics from an IR.
 
         Args:
             ir: The NPU IR to analyze.

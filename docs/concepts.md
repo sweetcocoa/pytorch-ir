@@ -1,12 +1,12 @@
 # Concepts and Architecture
 
-This document explains the core concepts and design philosophy of the NPU IR framework.
+This document explains the core concepts and design philosophy of the IR extraction framework.
 
 ## 1. Overview
 
 ### 1.1 Purpose
 
-The NPU IR framework extracts intermediate representation (IR) from PyTorch models that can be consumed by NPU compilers. The key objectives are:
+The IR extraction framework extracts intermediate representation (IR) from PyTorch models that can be consumed by downstream compiler backends. The key objectives are:
 
 - **Weight-free extraction**: Extract only graph structure and shape/dtype metadata without actual weight values
 - **Standardized representation**: Consistent IR decomposed into low-level ATen operations
@@ -69,7 +69,7 @@ exported.graph_signature   # Input/output and parameter information
 exported.state_dict        # Parameters (only shapes if meta tensors)
 ```
 
-### 2.4 NPU_IR Structure
+### 2.4 IR Structure
 
 IR data structure defined by the framework. For detailed API, refer to [IR Data Structure Reference](api/ir.md).
 
@@ -89,7 +89,7 @@ class OpNode:
     attrs: Dict[str, Any]       # Operation attributes (kernel_size, etc.)
 
 @dataclass
-class NPU_IR:
+class IR:
     nodes: List[OpNode]              # List of operation nodes
     graph_inputs: List[TensorMeta]   # Graph inputs
     graph_outputs: List[TensorMeta]  # Graph outputs
@@ -105,7 +105,7 @@ class NPU_IR:
 
 ```mermaid
 flowchart TD
-    A["User API<br/>extract_ir(model, example_inputs) → NPU_IR"]
+    A["User API<br/>extract_ir(model, example_inputs) → IR"]
     B["Model Exporter (exporter.py)<br/>Meta device validation · torch.export.export() invocation"]
     C["Graph Analyzer (analyzer.py)<br/>Graph traversal · shape/dtype metadata extraction"]
     D["IR Converter (converter.py)<br/>FX node → OpNode conversion · operator attribute extraction"]
@@ -148,7 +148,7 @@ torch.export decomposes to the ATen level by default. This provides the followin
 
 - **Consistency**: Various high-level APIs are converted to the same low-level operations
 - **Completeness**: All operations are explicitly represented
-- **NPU-friendly**: Good level for NPU compiler optimization
+- **Compiler-friendly**: Good level for compiler optimization
 
 Example:
 ```python
@@ -171,7 +171,7 @@ Thanks to this design, new ATen ops are automatically supported without framewor
 Manual registration is only needed for non-ATen ops or special conversion/execution requirements:
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 
 # Register execution function for non-ATen op
 @register_executor("my_custom_op")

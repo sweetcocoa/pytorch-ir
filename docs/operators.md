@@ -1,6 +1,6 @@
 # Operator Support
 
-This document explains how the NPU IR framework handles operators.
+This document explains how the IR extraction framework handles operators.
 
 ## 1. Overview
 
@@ -60,7 +60,7 @@ Currently registered non-ATen execution functions:
 Manual registration is only needed when using operators not in ATen:
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 
 @register_executor("my_custom_op")
 def execute_my_op(inputs, attrs):
@@ -73,7 +73,7 @@ ATen operators work automatically without registration. See the [Extension Guide
 ## 6. Checking Registered Operators
 
 ```python
-from npu_ir import list_registered_ops
+from torch_ir import list_registered_ops
 
 ops = list_registered_ops()
 print("Custom conversion ops:", len(ops['conversion']))  # User-registered count

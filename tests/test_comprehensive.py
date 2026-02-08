@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 from .models import MODEL_REGISTRY, TestModelSpec
 from .testing import IRStatistics, TestResult

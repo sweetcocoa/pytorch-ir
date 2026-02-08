@@ -1,6 +1,6 @@
 # 환경 설정
 
-이 문서는 NPU IR 프레임워크의 개발 환경 구성 방법을 설명합니다.
+이 문서는 IR 추출 프레임워크의 개발 환경 구성 방법을 설명합니다.
 
 !!! note
     기본 설치 방법은 [Home](index.md)을 참고하세요.
@@ -11,7 +11,7 @@
 
 ```
 my_compiler/
-├── npu_ir/              # 메인 패키지
+├── torch_ir/              # 메인 패키지
 │   ├── __init__.py      # 공개 API
 │   ├── ir.py            # IR 데이터 구조
 │   ├── exporter.py      # torch.export 래핑
@@ -45,7 +45,7 @@ my_compiler/
 
 ```toml
 [project]
-name = "npu-ir"
+name = "torch-ir"
 version = "0.1.0"
 description = "PyTorch to NPU IR extraction framework"
 requires-python = ">=3.10"
@@ -125,7 +125,7 @@ model = model.to('meta')
 
 ### 2.3 Import 오류
 
-**증상**: `ModuleNotFoundError: No module named 'npu_ir'`
+**증상**: `ModuleNotFoundError: No module named 'torch_ir'`
 
 **해결**:
 ```bash

@@ -1,6 +1,6 @@
 # Environment Setup
 
-This document explains how to configure the development environment for the NPU IR framework.
+This document explains how to configure the development environment for the IR extraction framework.
 
 !!! note
     For basic installation instructions, see [Home](index.md).
@@ -11,7 +11,7 @@ This document explains how to configure the development environment for the NPU 
 
 ```
 my_compiler/
-├── npu_ir/              # Main package
+├── torch_ir/              # Main package
 │   ├── __init__.py      # Public API
 │   ├── ir.py            # IR data structures
 │   ├── exporter.py      # torch.export wrapper
@@ -45,9 +45,9 @@ my_compiler/
 
 ```toml
 [project]
-name = "npu-ir"
+name = "torch-ir"
 version = "0.1.0"
-description = "PyTorch to NPU IR extraction framework"
+description = "PyTorch IR extraction framework for compiler backends"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.1",
@@ -125,7 +125,7 @@ model = model.to('meta')
 
 ### 2.3 Import Errors
 
-**Symptom**: `ModuleNotFoundError: No module named 'npu_ir'`
+**Symptom**: `ModuleNotFoundError: No module named 'torch_ir'`
 
 **Solution**:
 ```bash

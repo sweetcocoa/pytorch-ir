@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-NPU IR Extraction Framework — extracts intermediate representation (IR) graphs from PyTorch models using `torch.export` **without loading actual weights**. Models run on PyTorch's meta device so only shape/dtype metadata is captured. The IR serializes to JSON for consumption by downstream NPU compiler backends.
+IR Extraction Framework — extracts intermediate representation (IR) graphs from PyTorch models using `torch.export` **without loading actual weights**. Models run on PyTorch's meta device so only shape/dtype metadata is captured. The IR serializes to JSON for consumption by downstream compiler backends.
 
 Documentation is written in Korean. Match that convention for doc changes.
 
@@ -32,10 +32,10 @@ uv run python -m tests --list-models
 uv run python -m tests --category attention
 
 # Lint
-uv run ruff check npu_ir/ tests/
+uv run ruff check torch_ir/ tests/
 
 # Lint with auto-fix
-uv run ruff check --fix npu_ir/ tests/
+uv run ruff check --fix torch_ir/ tests/
 ```
 
 ## Architecture
@@ -43,7 +43,7 @@ uv run ruff check --fix npu_ir/ tests/
 ### Pipeline
 
 ```
-Model (meta device) → export_model() → convert_exported_program() → NPU_IR
+Model (meta device) → export_model() → convert_exported_program() → IR
                                                                        ├── save/load (JSON)
                                                                        ├── execute_ir() (with real weights)
                                                                        └── verify_ir() (compare vs original)
@@ -52,10 +52,10 @@ Model (meta device) → export_model() → convert_exported_program() → NPU_IR
 The pipeline flows through these modules in order:
 - **exporter.py** — wraps `torch.export.export()`, validates model/inputs are on meta device
 - **analyzer.py** — inspects FX graph nodes, extracts op attributes via PyTorch op schema introspection
-- **converter.py** — transforms `ExportedProgram` into `NPU_IR` (list of `OpNode`s with `TensorMeta`)
+- **converter.py** — transforms `ExportedProgram` into `IR` (list of `OpNode`s with `TensorMeta`)
 - **executor.py** — runs the IR graph with real tensors; uses schema-based ATen fallback for automatic op execution
 - **verifier.py** — compares IR execution output against original model output (tolerances: rtol=1e-4, atol=1e-4)
-- **serializer.py** — JSON serialization/deserialization of `NPU_IR`
+- **serializer.py** — JSON serialization/deserialization of `IR`
 
 ### Key Design Decisions
 
@@ -63,13 +63,13 @@ The pipeline flows through these modules in order:
 
 **Producer-consumer tracking**: Each `TensorMeta` stores `producer_node` and `producer_output_idx` to explicitly track which node produced it. This prevents tensor lookup ambiguity and ensures correct execution order.
 
-**Weight-name mapping**: `NPU_IR.weight_name_mapping` maps FX graph placeholder names to original `state_dict` keys, so weights can be loaded separately from IR extraction.
+**Weight-name mapping**: `IR.weight_name_mapping` maps FX graph placeholder names to original `state_dict` keys, so weights can be loaded separately from IR extraction.
 
 ### Core Data Structures (ir.py)
 
 - `TensorMeta` — name, shape, dtype, producer_node, producer_output_idx
 - `OpNode` — name, op_type (e.g. `aten.conv2d.default`), inputs/outputs as `TensorMeta`, attrs dict
-- `NPU_IR` — nodes, graph_inputs, graph_outputs, weights, weight_name_mapping, constants, model_name
+- `IR` — nodes, graph_inputs, graph_outputs, weights, weight_name_mapping, constants, model_name
 
 ### Extension Points (ops/)
 
@@ -81,7 +81,7 @@ The pipeline flows through these modules in order:
 
 ### Public API (__init__.py)
 
-Main entry points: `extract_ir()`, `execute_ir()`, `verify_ir()`, `verify_ir_with_state_dict()`, `save_ir()`/`load_ir()`, `NPU_IR.save()`/`NPU_IR.load()`
+Main entry points: `extract_ir()`, `execute_ir()`, `verify_ir()`, `verify_ir_with_state_dict()`, `save_ir()`/`load_ir()`, `IR.save()`/`IR.load()`
 
 ### Test Structure
 

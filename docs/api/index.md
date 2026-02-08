@@ -1,16 +1,16 @@
 # API Reference
 
-Public API documentation for the NPU IR framework.
+Public API documentation for the IR extraction framework.
 
 ## Main Entry Point
 
-::: npu_ir.extract_ir
+::: torch_ir.extract_ir
 
 ## Module List
 
 | Module | Description |
 |--------|-------------|
-| [IR Data Structures](ir.md) | `TensorMeta`, `OpNode`, `NPU_IR` |
+| [IR Data Structures](ir.md) | `TensorMeta`, `OpNode`, `IR` |
 | [Exporter](exporter.md) | `export_model`, `ExportError` |
 | [Converter](converter.md) | `IRConverter`, `ConversionError`, `convert_exported_program` |
 | [Executor](executor.md) | `IRExecutor`, `execute_ir`, `ExecutionError` |

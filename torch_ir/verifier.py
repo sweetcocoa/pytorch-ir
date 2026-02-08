@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from .executor import execute_ir
-from .ir import NPU_IR
+from .ir import IR
 from .weight_loader import load_weights
 
 
@@ -80,7 +80,7 @@ def _compare_tensors(
 
 
 def verify_ir(
-    ir: NPU_IR,
+    ir: IR,
     weights_path: Union[str, Path],
     original_model: nn.Module,
     test_inputs: Tuple[torch.Tensor, ...],
@@ -167,7 +167,7 @@ def verify_ir(
 
 
 def verify_ir_with_state_dict(
-    ir: NPU_IR,
+    ir: IR,
     state_dict: Dict[str, torch.Tensor],
     original_model: nn.Module,
     test_inputs: Tuple[torch.Tensor, ...],
@@ -271,7 +271,7 @@ class IRVerifier:
 
     def verify(
         self,
-        ir: NPU_IR,
+        ir: IR,
         weights_path: Union[str, Path],
         original_model: nn.Module,
         test_inputs: Tuple[torch.Tensor, ...],
@@ -298,7 +298,7 @@ class IRVerifier:
 
     def verify_with_state_dict(
         self,
-        ir: NPU_IR,
+        ir: IR,
         state_dict: Dict[str, torch.Tensor],
         original_model: nn.Module,
         test_inputs: Tuple[torch.Tensor, ...],

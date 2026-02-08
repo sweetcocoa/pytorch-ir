@@ -5,7 +5,7 @@ from typing import Dict, List, Optional, Union
 
 import torch
 
-from .ir import NPU_IR
+from .ir import IR
 
 
 class WeightLoadError(Exception):
@@ -118,7 +118,7 @@ def load_weights(path: Union[str, Path]) -> Dict[str, torch.Tensor]:
 
 def validate_weights_against_ir(
     weights: Dict[str, torch.Tensor],
-    ir: NPU_IR,
+    ir: IR,
 ) -> List[str]:
     """Validate that loaded weights match the IR weight metadata.
 
@@ -177,7 +177,7 @@ class WeightLoader:
     def load(
         self,
         path: Union[str, Path],
-        ir: Optional[NPU_IR] = None,
+        ir: Optional[IR] = None,
     ) -> Dict[str, torch.Tensor]:
         """Load weights from a file.
 
@@ -203,7 +203,7 @@ class WeightLoader:
     def load_from_state_dict(
         self,
         state_dict: Dict[str, torch.Tensor],
-        ir: Optional[NPU_IR] = None,
+        ir: Optional[IR] = None,
     ) -> Dict[str, torch.Tensor]:
         """Use an existing state dict as weights.
 

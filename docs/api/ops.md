@@ -2,4 +2,4 @@
 
 Operator registry and utility module.
 
-::: npu_ir.ops
+::: torch_ir.ops

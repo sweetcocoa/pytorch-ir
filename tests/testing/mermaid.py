@@ -1,6 +1,6 @@
-"""Mermaid diagram generation from NPU IR — re-exported from npu_ir.visualize."""
+"""Mermaid diagram generation from IR — re-exported from torch_ir.visualize."""
 
-from npu_ir.visualize import (
+from torch_ir.visualize import (
     _format_shape,
     _get_short_op_name,
     _sanitize_label,

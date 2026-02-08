@@ -11,7 +11,7 @@
     ```python
     import torch
     import torch.nn as nn
-    from npu_ir import extract_ir
+    from torch_ir import extract_ir
 
     class SimpleMLP(nn.Module):
         def __init__(self):
@@ -136,7 +136,7 @@
 `ir_to_mermaid()` 함수를 사용하면 임의의 IR을 Mermaid 다이어그램으로 변환할 수 있습니다:
 
 ```python
-from npu_ir import extract_ir, ir_to_mermaid
+from torch_ir import extract_ir, ir_to_mermaid
 
 # IR 추출
 with torch.device('meta'):
@@ -155,7 +155,7 @@ mermaid_str = ir_to_mermaid(ir, max_nodes=20)
 연산자 분포 파이 차트도 생성할 수 있습니다:
 
 ```python
-from npu_ir import generate_op_distribution_pie
+from torch_ir import generate_op_distribution_pie
 
 pie_chart = generate_op_distribution_pie(ir)
 print(pie_chart)

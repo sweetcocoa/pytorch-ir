@@ -2,4 +2,4 @@
 
 IR visualization utilities.
 
-::: npu_ir.visualize
+::: torch_ir.visualize

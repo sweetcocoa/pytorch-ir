@@ -7,8 +7,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from npu_ir import extract_ir
-from npu_ir.verifier import (
+from torch_ir import extract_ir
+from torch_ir.verifier import (
     IRVerifier,
     VerificationReport,
     _compare_tensors,

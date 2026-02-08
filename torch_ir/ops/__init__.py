@@ -7,7 +7,7 @@ This module provides:
 
 Custom operators can be registered using decorators:
 
-    from npu_ir.ops import register_op, register_executor
+    from torch_ir.ops import register_op, register_executor
 
     @register_op("custom.my_op")
     def convert_my_op(node_info):

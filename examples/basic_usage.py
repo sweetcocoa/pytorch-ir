@@ -1,9 +1,9 @@
-"""Basic usage example for NPU IR extraction framework."""
+"""Basic usage example for IR extraction framework."""
 
 import torch
 import torch.nn as nn
 
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 
 # Define a simple model
@@ -35,7 +35,7 @@ class SimpleConvNet(nn.Module):
 
 def main():
     print("=" * 60)
-    print("NPU IR Extraction Framework - Basic Usage Example")
+    print("IR Extraction Framework - Basic Usage Example")
     print("=" * 60)
 
     # 1. Create original model with weights (for verification)
@@ -103,7 +103,7 @@ def main():
 
     # 9. Load IR from file
     print("\n9. Loading IR from file...")
-    from npu_ir import load_ir
+    from torch_ir import load_ir
 
     loaded_ir = load_ir(ir_path)
     print(f"   Loaded IR: {loaded_ir}")

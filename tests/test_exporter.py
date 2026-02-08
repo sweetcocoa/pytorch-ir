@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from npu_ir.exporter import (
+from torch_ir.exporter import (
     ExportError,
     export_model,
     is_meta_module,

@@ -1,9 +1,9 @@
-"""Mermaid diagram generation from NPU IR."""
+"""Mermaid diagram generation from IR."""
 
 from collections import defaultdict
 from typing import Dict, Set, Tuple
 
-from npu_ir.ir import NPU_IR
+from torch_ir.ir import IR
 
 
 def _format_shape(shape: Tuple[int, ...]) -> str:
@@ -33,11 +33,11 @@ def _get_short_op_name(op_type: str) -> str:
     return name
 
 
-def ir_to_mermaid(ir: NPU_IR, max_nodes: int = 30) -> str:
-    """Convert NPU IR to Mermaid flowchart diagram.
+def ir_to_mermaid(ir: IR, max_nodes: int = 30) -> str:
+    """Convert IR to Mermaid flowchart diagram.
 
     Args:
-        ir: The NPU IR to visualize.
+        ir: The IR to visualize.
         max_nodes: Maximum number of nodes to include (for large graphs).
 
     Returns:
@@ -121,11 +121,11 @@ def ir_to_mermaid(ir: NPU_IR, max_nodes: int = 30) -> str:
     return "\n".join(lines)
 
 
-def generate_op_distribution_pie(ir: NPU_IR, top_n: int = 10) -> str:
+def generate_op_distribution_pie(ir: IR, top_n: int = 10) -> str:
     """Generate Mermaid pie chart showing operator distribution.
 
     Args:
-        ir: The NPU IR to analyze.
+        ir: The IR to analyze.
         top_n: Maximum number of operator types to show.
 
     Returns:

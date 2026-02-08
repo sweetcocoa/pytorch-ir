@@ -1,6 +1,6 @@
 # NPU IR Extraction Framework
 
-PyTorch 모델에서 NPU 컴파일러용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
+PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
 
 ## 주요 특징
 
@@ -26,7 +26,7 @@ pip install -e .
 
 ```python
 import torch
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 # 1. Meta device에서 모델 생성
 with torch.device('meta'):

@@ -1,6 +1,6 @@
 # 확장 가이드
 
-이 문서는 NPU IR 프레임워크에 커스텀 연산자를 추가하는 방법을 설명합니다.
+이 문서는 IR 추출 프레임워크에 커스텀 연산자를 추가하는 방법을 설명합니다.
 
 ## 1. 개요
 
@@ -17,7 +17,7 @@
 ### 2.1 레지스트리 구조
 
 ```python
-# npu_ir/ops/registry.py
+# torch_ir/ops/registry.py
 
 # IR 변환 함수 저장 (커스텀 변환용)
 _CONVERSION_REGISTRY: Dict[str, Callable] = {}
@@ -57,7 +57,7 @@ ATen fallback이 처리할 수 없는 non-ATen op에 대해서만 필요합니�
 ### 3.1 기본 구조
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 import torch
 from typing import List, Dict, Any
 
@@ -94,9 +94,9 @@ def execute_my_op(inputs: List[torch.Tensor], attrs: Dict[str, Any]) -> List[tor
 기본 변환기(`_default_conversion`)가 대부분의 경우 충분하지만, OpNode의 구조를 커스터마이즈하고 싶은 경우:
 
 ```python
-from npu_ir.ops import register_op
-from npu_ir import OpNode
-from npu_ir.analyzer import NodeInfo
+from torch_ir.ops import register_op
+from torch_ir import OpNode
+from torch_ir.analyzer import NodeInfo
 
 @register_op("my_custom_op")
 def convert_my_custom_op(node_info: NodeInfo) -> OpNode:
@@ -138,9 +138,9 @@ class NodeInfo:
 import torch
 from typing import List, Dict, Any
 
-from npu_ir.ops import register_op, register_executor
-from npu_ir import OpNode
-from npu_ir.analyzer import NodeInfo
+from torch_ir.ops import register_op, register_executor
+from torch_ir import OpNode
+from torch_ir.analyzer import NodeInfo
 
 
 @register_op("custom.fused_gate")
@@ -171,7 +171,7 @@ def execute_fused_gate(
 # 커스텀 연산자 모듈 임포트 (등록됨)
 import my_custom_ops
 
-from npu_ir import extract_ir
+from torch_ir import extract_ir
 ```
 
 ## 6. 모듈로 구성하기
@@ -197,7 +197,7 @@ from . import custom_pooling
 ### 7.1 FX 그래프 확인
 
 ```python
-from npu_ir import export_model
+from torch_ir import export_model
 
 exported = export_model(model, inputs, strict=False)
 
@@ -215,7 +215,7 @@ for node in exported.graph_module.graph.nodes:
 ### 7.2 등록 확인
 
 ```python
-from npu_ir.ops.registry import get_conversion_fn, get_execution_fn
+from torch_ir.ops.registry import get_conversion_fn, get_execution_fn
 
 op_type = "my_custom_op"
 print(f"Conversion: {get_conversion_fn(op_type)}")
@@ -255,7 +255,7 @@ def execute_my_op(inputs, attrs):
 
 프레임워크에 기여하려면:
 
-1. Non-ATen op의 실행 함수는 `npu_ir/ops/aten_impl.py`에 추가
+1. Non-ATen op의 실행 함수는 `torch_ir/ops/aten_impl.py`에 추가
 2. `tests/`에 테스트 추가
 3. `docs/operators.md` 문서 업데이트
 

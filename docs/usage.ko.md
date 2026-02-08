@@ -1,6 +1,6 @@
 # 사용 가이드
 
-이 문서는 NPU IR 프레임워크의 상세 사용법을 설명합니다.
+이 문서는 IR 추출 프레임워크의 상세 사용법을 설명합니다.
 
 ## 1. 기본 워크플로우
 
@@ -9,7 +9,7 @@
 ```python
 import torch
 import torch.nn as nn
-from npu_ir import extract_ir
+from torch_ir import extract_ir
 
 # 1. 모델 정의
 class MyModel(nn.Module):
@@ -122,7 +122,7 @@ for placeholder, sd_key in ir.weight_name_mapping.items():
 ir.save("model_ir.json")
 
 # 또는 serializer 사용
-from npu_ir import save_ir, serialize_ir
+from torch_ir import save_ir, serialize_ir
 
 save_ir(ir, "model_ir.json")
 
@@ -133,14 +133,14 @@ json_str = serialize_ir(ir)
 ### 3.2 JSON 파일에서 로드
 
 ```python
-from npu_ir import load_ir, deserialize_ir
+from torch_ir import load_ir, deserialize_ir
 
 # 파일에서 로드
 loaded_ir = load_ir("model_ir.json")
 
-# 또는 NPU_IR.load() 사용
-from npu_ir import NPU_IR
-loaded_ir = NPU_IR.load("model_ir.json")
+# 또는 IR.load() 사용
+from torch_ir import IR
+loaded_ir = IR.load("model_ir.json")
 
 # JSON 문자열에서 역직렬화
 ir = deserialize_ir(json_str)
@@ -149,7 +149,7 @@ ir = deserialize_ir(json_str)
 ### 3.3 IR 검증
 
 ```python
-from npu_ir import validate_ir
+from torch_ir import validate_ir
 
 # IR 구조 검증
 try:
@@ -166,7 +166,7 @@ except Exception as e:
 IR을 실제 weight와 함께 실행하여 결과를 얻을 수 있습니다.
 
 ```python
-from npu_ir import IRExecutor, execute_ir
+from torch_ir import IRExecutor, execute_ir
 
 # 원본 모델에서 weight 가져오기
 original_model = MyModel()
@@ -189,7 +189,7 @@ print(f"Output shape: {outputs[0].shape}")
 ### 4.2 원본 모델과 비교 검증
 
 ```python
-from npu_ir import verify_ir_with_state_dict, verify_ir
+from torch_ir import verify_ir_with_state_dict, verify_ir
 
 # 원본 모델 준비
 original_model = MyModel()
@@ -317,7 +317,7 @@ ir = extract_ir(model, inputs)
 ### 6.1 Weight 로드
 
 ```python
-from npu_ir import load_weights, load_weights_pt, load_weights_safetensors
+from torch_ir import load_weights, load_weights_pt, load_weights_safetensors
 
 # 자동 포맷 감지
 weights = load_weights('model.pt')
@@ -330,7 +330,7 @@ weights = load_weights_safetensors('model.safetensors')
 ### 6.2 Weight 검증
 
 ```python
-from npu_ir.weight_loader import validate_weights_against_ir
+from torch_ir.weight_loader import validate_weights_against_ir
 
 # Weight가 IR과 일치하는지 검증
 errors = validate_weights_against_ir(weights, ir)
@@ -369,8 +369,8 @@ print(ir.model_name)  # "MyCustomModel_v2"
 ### 7.3 IRConverter 직접 사용
 
 ```python
-from npu_ir import export_model
-from npu_ir.converter import IRConverter, convert_exported_program
+from torch_ir import export_model
+from torch_ir.converter import IRConverter, convert_exported_program
 
 # torch.export 직접 호출
 exported = export_model(model, inputs, strict=False)
@@ -386,8 +386,8 @@ ir = convert_exported_program(exported, model_name="MyModel")
 ### 7.4 GraphAnalyzer 직접 사용
 
 ```python
-from npu_ir import export_model
-from npu_ir.analyzer import GraphAnalyzer
+from torch_ir import export_model
+from torch_ir.analyzer import GraphAnalyzer
 
 exported = export_model(model, inputs, strict=False)
 analyzer = GraphAnalyzer(exported)
@@ -406,7 +406,7 @@ nodes = analyzer.get_call_function_nodes()
 
 ```python
 import torch
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 def full_pipeline(model_class, input_shape, weights_path):
     """IR 추출부터 검증까지 전체 파이프라인"""

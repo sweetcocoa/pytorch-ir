@@ -1,10 +1,10 @@
-"""IR Builder/Converter - converts ExportedProgram to NPU_IR."""
+"""IR Builder/Converter - converts ExportedProgram to IR."""
 
 import torch
 from torch.export import ExportedProgram
 
 from .analyzer import GraphAnalyzer, NodeInfo
-from .ir import NPU_IR, OpNode
+from .ir import IR, OpNode
 from .ops.aten_ops import get_op_type
 from .ops.registry import get_conversion_fn
 
@@ -34,7 +34,7 @@ def _validate_static_shapes(exported: ExportedProgram) -> None:
                     raise ConversionError(
                         f"Dynamic shape detected in node '{node.name}': "
                         f"shape={tuple(tensor.shape)}. "
-                        f"NPU IR requires static shapes. "
+                        f"IR extraction requires static shapes. "
                         f"Do not pass dynamic_shapes to torch.export.export()."
                     )
 
@@ -77,8 +77,8 @@ def convert_exported_program(
     exported: ExportedProgram,
     model_name: str = "",
     strict: bool = False,
-) -> NPU_IR:
-    """Convert an ExportedProgram to NPU_IR.
+) -> IR:
+    """Convert an ExportedProgram to IR.
 
     Args:
         exported: The exported program from torch.export.
@@ -86,7 +86,7 @@ def convert_exported_program(
         strict: If True, raise error for unsupported ops. If False, use default conversion.
 
     Returns:
-        The converted NPU_IR.
+        The converted IR.
 
     Raises:
         ConversionError: If strict mode and unsupported operation encountered.
@@ -117,7 +117,7 @@ def convert_exported_program(
                 op_node = _default_conversion(node_info)
                 nodes.append(op_node)
 
-    return NPU_IR(
+    return IR(
         nodes=nodes,
         graph_inputs=graph_inputs,
         graph_outputs=graph_outputs,
@@ -143,15 +143,15 @@ class IRConverter:
         self,
         exported: ExportedProgram,
         model_name: str = "",
-    ) -> NPU_IR:
-        """Convert an ExportedProgram to NPU_IR.
+    ) -> IR:
+        """Convert an ExportedProgram to IR.
 
         Args:
             exported: The exported program from torch.export.
             model_name: Optional name for the model.
 
         Returns:
-            The converted NPU_IR.
+            The converted IR.
         """
         return convert_exported_program(
             exported,

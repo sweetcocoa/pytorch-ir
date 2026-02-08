@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from npu_ir import NPU_IR, VerificationReport
+from torch_ir import IR, VerificationReport
 
 from .mermaid import generate_op_distribution_pie, ir_to_mermaid
 from .statistics import IRStatistics
@@ -18,7 +18,7 @@ class TestResult:
     Attributes:
         model_name: Name of the tested model.
         passed: Whether the test passed.
-        ir: Extracted NPU IR (if successful).
+        ir: Extracted IR (if successful).
         verification_report: Verification report from comparison.
         statistics: IR statistics (if IR was extracted).
         error_message: Error message (if failed).
@@ -27,7 +27,7 @@ class TestResult:
 
     model_name: str
     passed: bool
-    ir: Optional[NPU_IR] = None
+    ir: Optional[IR] = None
     verification_report: Optional[VerificationReport] = None
     statistics: Optional[IRStatistics] = None
     error_message: Optional[str] = None

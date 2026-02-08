@@ -3,7 +3,7 @@
 import torch
 import torch.nn as nn
 
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 
 class TestSimpleModels:
@@ -216,7 +216,7 @@ class TestSerializationRoundTrip:
         ir.save(str(ir_path))
 
         # Load
-        from npu_ir import load_ir
+        from torch_ir import load_ir
 
         loaded_ir = load_ir(str(ir_path))
 

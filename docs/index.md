@@ -1,6 +1,6 @@
-# NPU IR Extraction Framework
+# Torch IR Extraction Framework
 
-A framework for extracting IR (Intermediate Representation) from PyTorch models for NPU compilers.
+A framework for extracting IR (Intermediate Representation) from PyTorch models for downstream compiler backends.
 
 ## Key Features
 
@@ -26,7 +26,7 @@ pip install -e .
 
 ```python
 import torch
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 # 1. Create model on meta device
 with torch.device('meta'):

@@ -1,4 +1,4 @@
-"""ResNet example for NPU IR extraction framework.
+"""ResNet example for IR extraction framework.
 
 This example shows how to extract IR from a torchvision ResNet model.
 Requires: pip install torchvision
@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_TORCHVISION = False
 
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 
 def main():
@@ -24,7 +24,7 @@ def main():
         return
 
     print("=" * 60)
-    print("NPU IR Extraction Framework - ResNet Example")
+    print("IR Extraction Framework - ResNet Example")
     print("=" * 60)
 
     # 1. Load pretrained ResNet18

@@ -1,6 +1,6 @@
 # Extension Guide
 
-This document explains how to add custom operators to the NPU IR framework.
+This document explains how to add custom operators to the IR extraction framework.
 
 ## 1. Overview
 
@@ -17,7 +17,7 @@ In most cases, you don't need to register anything.
 ### 2.1 Registry Structure
 
 ```python
-# npu_ir/ops/registry.py
+# torch_ir/ops/registry.py
 
 # Store IR conversion functions (for custom conversion)
 _CONVERSION_REGISTRY: Dict[str, Callable] = {}
@@ -57,7 +57,7 @@ Only needed for non-ATen ops that ATen fallback cannot handle.
 ### 3.1 Basic Structure
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 import torch
 from typing import List, Dict, Any
 
@@ -94,9 +94,9 @@ def execute_my_op(inputs: List[torch.Tensor], attrs: Dict[str, Any]) -> List[tor
 The default converter (`_default_conversion`) is sufficient in most cases, but if you want to customize the OpNode structure:
 
 ```python
-from npu_ir.ops import register_op
-from npu_ir import OpNode
-from npu_ir.analyzer import NodeInfo
+from torch_ir.ops import register_op
+from torch_ir import OpNode
+from torch_ir.analyzer import NodeInfo
 
 @register_op("my_custom_op")
 def convert_my_custom_op(node_info: NodeInfo) -> OpNode:
@@ -138,9 +138,9 @@ class NodeInfo:
 import torch
 from typing import List, Dict, Any
 
-from npu_ir.ops import register_op, register_executor
-from npu_ir import OpNode
-from npu_ir.analyzer import NodeInfo
+from torch_ir.ops import register_op, register_executor
+from torch_ir import OpNode
+from torch_ir.analyzer import NodeInfo
 
 
 @register_op("custom.fused_gate")
@@ -171,7 +171,7 @@ def execute_fused_gate(
 # Import custom operator module (registers it)
 import my_custom_ops
 
-from npu_ir import extract_ir
+from torch_ir import extract_ir
 ```
 
 ## 6. Organizing as Module
@@ -197,7 +197,7 @@ from . import custom_pooling
 ### 7.1 Checking FX Graph
 
 ```python
-from npu_ir import export_model
+from torch_ir import export_model
 
 exported = export_model(model, inputs, strict=False)
 
@@ -215,7 +215,7 @@ for node in exported.graph_module.graph.nodes:
 ### 7.2 Checking Registration
 
 ```python
-from npu_ir.ops.registry import get_conversion_fn, get_execution_fn
+from torch_ir.ops.registry import get_conversion_fn, get_execution_fn
 
 op_type = "my_custom_op"
 print(f"Conversion: {get_conversion_fn(op_type)}")
@@ -255,7 +255,7 @@ def execute_my_op(inputs, attrs):
 
 To contribute to the framework:
 
-1. Add execution functions for non-ATen ops to `npu_ir/ops/aten_impl.py`
+1. Add execution functions for non-ATen ops to `torch_ir/ops/aten_impl.py`
 2. Add tests in `tests/`
 3. Update `docs/operators.md` documentation
 

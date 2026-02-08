@@ -4,8 +4,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from npu_ir.converter import IRConverter, convert_exported_program
-from npu_ir.exporter import export_model
+from torch_ir.converter import IRConverter, convert_exported_program
+from torch_ir.exporter import export_model
 
 
 class SimpleModel(nn.Module):

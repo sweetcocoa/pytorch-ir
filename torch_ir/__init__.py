@@ -1,11 +1,11 @@
-"""NPU IR extraction framework for PyTorch models.
+"""IR extraction framework for PyTorch models.
 
 This framework extracts IR from PyTorch models using torch.export,
 without loading actual weight values (using meta tensors).
 
 Example usage:
     import torch
-    from npu_ir import extract_ir, verify_ir
+    from torch_ir import extract_ir, verify_ir
 
     # Create model on meta device
     with torch.device('meta'):
@@ -35,7 +35,7 @@ from .analyzer import GraphAnalyzer
 from .converter import ConversionError, IRConverter, convert_exported_program
 from .executor import ExecutionError, IRExecutor, execute_ir
 from .exporter import ExportError, export_model, get_model_name
-from .ir import NPU_IR, OpNode, TensorMeta
+from .ir import IR, OpNode, TensorMeta
 
 # Import aten ops and implementations to register them
 from .ops import aten_impl, aten_ops
@@ -67,7 +67,7 @@ __all__ = [
     "verify_ir",
     "verify_ir_with_state_dict",
     # IR data structures
-    "NPU_IR",
+    "IR",
     "OpNode",
     "TensorMeta",
     # Exporter
@@ -119,8 +119,8 @@ def extract_ir(
     *,
     model_name: Optional[str] = None,
     strict: bool = True,
-) -> NPU_IR:
-    """Extract NPU IR from a PyTorch model.
+) -> IR:
+    """Extract IR from a PyTorch model.
 
     This is the main entry point for IR extraction. The model should be on
     meta device for weight-free extraction.
@@ -132,7 +132,7 @@ def extract_ir(
         strict: If True, validate meta device and raise errors for unsupported ops.
 
     Returns:
-        The extracted NPU_IR.
+        The extracted IR.
 
     Raises:
         ExportError: If model export fails.
@@ -140,7 +140,7 @@ def extract_ir(
 
     Example:
         >>> import torch
-        >>> from npu_ir import extract_ir
+        >>> from torch_ir import extract_ir
         >>> with torch.device('meta'):
         ...     model = torch.nn.Linear(10, 5)
         >>> inputs = (torch.randn(1, 10, device='meta'),)
@@ -154,7 +154,7 @@ def extract_ir(
     if model_name is None:
         model_name = get_model_name(model)
 
-    # Convert to NPU IR
+    # Convert to IR
     ir = convert_exported_program(exported, model_name=model_name, strict=False)
 
     # Capture lifted tensor constants from export

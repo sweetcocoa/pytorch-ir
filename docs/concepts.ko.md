@@ -1,12 +1,12 @@
 # 개념 및 아키텍처
 
-이 문서는 NPU IR 프레임워크의 핵심 개념과 설계 철학을 설명합니다.
+이 문서는 IR 추출 프레임워크의 핵심 개념과 설계 철학을 설명합니다.
 
 ## 1. 개요
 
 ### 1.1 목적
 
-NPU IR 프레임워크는 PyTorch 모델에서 NPU 컴파일러가 사용할 수 있는 중간 표현(IR)을 추출합니다. 핵심 목표는 다음과 같습니다:
+IR 추출 프레임워크는 PyTorch 모델에서 컴파일러 백엔드가 사용할 수 있는 중간 표현(IR)을 추출합니다. 핵심 목표는 다음과 같습니다:
 
 - **Weight-free 추출**: 실제 weight 값 없이 그래프 구조와 shape/dtype 메타데이터만 추출
 - **표준화된 표현**: ATen 레벨의 저수준 연산으로 분해된 일관된 IR
@@ -69,7 +69,7 @@ exported.graph_signature   # 입출력 및 파라미터 정보
 exported.state_dict        # 파라미터 (meta tensor면 shape만)
 ```
 
-### 2.4 NPU_IR 구조
+### 2.4 IR 구조
 
 프레임워크에서 정의한 IR 데이터 구조입니다. 상세 API는 [IR 데이터 구조 레퍼런스](api/ir.md)를 참고하세요.
 
@@ -89,7 +89,7 @@ class OpNode:
     attrs: Dict[str, Any]       # 연산 속성 (kernel_size 등)
 
 @dataclass
-class NPU_IR:
+class IR:
     nodes: List[OpNode]              # 연산 노드 리스트
     graph_inputs: List[TensorMeta]   # 그래프 입력
     graph_outputs: List[TensorMeta]  # 그래프 출력
@@ -105,7 +105,7 @@ class NPU_IR:
 
 ```mermaid
 flowchart TD
-    A["사용자 API<br/>extract_ir(model, example_inputs) → NPU_IR"]
+    A["사용자 API<br/>extract_ir(model, example_inputs) → IR"]
     B["Model Exporter (exporter.py)<br/>Meta device 검증 · torch.export.export() 호출"]
     C["Graph Analyzer (analyzer.py)<br/>그래프 순회 · shape/dtype 메타데이터 추출"]
     D["IR Converter (converter.py)<br/>FX node → OpNode 변환 · 연산자 속성 추출"]
@@ -148,7 +148,7 @@ torch.export는 기본적으로 ATen 레벨로 분해합니다. 이는 다음과
 
 - **일관성**: 다양한 고수준 API가 동일한 저수준 연산으로 변환
 - **완전성**: 모든 연산이 명시적으로 표현
-- **NPU 친화적**: NPU 컴파일러가 최적화하기 좋은 수준
+- **컴파일러 친화적**: 컴파일러 백엔드가 최적화하기 좋은 수준
 
 예시:
 ```python
@@ -171,7 +171,7 @@ torch.export는 기본적으로 ATen 레벨로 분해합니다. 이는 다음과
 non-ATen op이나 특수한 변환/실행이 필요한 경우에만 수동 등록합니다:
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 
 # non-ATen op의 실행 함수 등록
 @register_executor("my_custom_op")

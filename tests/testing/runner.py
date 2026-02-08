@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 
 import torch
 
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 from ..models import MODEL_REGISTRY, TestModelSpec, list_models
 from .report import ReportGenerator, TestResult

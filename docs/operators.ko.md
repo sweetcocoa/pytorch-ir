@@ -1,6 +1,6 @@
 # 연산자 지원
 
-이 문서는 NPU IR 프레임워크의 연산자 처리 방식을 설명합니다.
+이 문서는 IR 추출 프레임워크의 연산자 처리 방식을 설명합니다.
 
 ## 1. 개요
 
@@ -60,7 +60,7 @@ ATen fallback이 처리할 수 없는 연산자는 커스텀 실행 함수가 �
 ATen에 없는 연산자를 사용하는 경우에만 수동 등록이 필요합니다:
 
 ```python
-from npu_ir.ops import register_executor
+from torch_ir.ops import register_executor
 
 @register_executor("my_custom_op")
 def execute_my_op(inputs, attrs):
@@ -73,7 +73,7 @@ ATen 연산자는 등록 없이 자동으로 동작합니다. 자세한 내용�
 ## 6. 등록된 연산자 확인
 
 ```python
-from npu_ir import list_registered_ops
+from torch_ir import list_registered_ops
 
 ops = list_registered_ops()
 print("Custom conversion ops:", len(ops['conversion']))  # 사용자 등록 수

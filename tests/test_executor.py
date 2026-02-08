@@ -4,8 +4,8 @@ import pytest
 import torch
 import torch.nn as nn
 
-from npu_ir import extract_ir
-from npu_ir.executor import ExecutionError, IRExecutor, TensorRegistry, execute_ir
+from torch_ir import extract_ir
+from torch_ir.executor import ExecutionError, IRExecutor, TensorRegistry, execute_ir
 
 
 class SimpleModel(nn.Module):

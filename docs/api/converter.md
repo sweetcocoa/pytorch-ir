@@ -1,5 +1,5 @@
 # Converter
 
-Module that converts `ExportedProgram` to `NPU_IR`.
+Module that converts `ExportedProgram` to `IR`.
 
-::: npu_ir.converter
+::: torch_ir.converter

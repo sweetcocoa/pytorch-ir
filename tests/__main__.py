@@ -27,7 +27,7 @@ from .testing import TestRunner
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Comprehensive test runner for NPU IR extraction",
+        description="Comprehensive test runner for IR extraction",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
@@ -118,7 +118,7 @@ def main():
     )
 
     print("=" * 60)
-    print("NPU IR Comprehensive Test Runner")
+    print("IR Extraction Comprehensive Test Runner")
     print("=" * 60)
     print()
 

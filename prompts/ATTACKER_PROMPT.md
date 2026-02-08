@@ -19,7 +19,7 @@ Every attack follows this pattern. Write it as a standalone Python script and ex
 ```python
 import torch
 import torch.nn as nn
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 class AttackModel(nn.Module):
     def __init__(self):
@@ -134,7 +134,7 @@ Based on what failed in previous phases, try combinations:
 3. **Always call `.eval()`** on both real and meta models.
 4. **Write each attack as a standalone Python script** in the scratchpad directory, run it with Bash, then parse the output.
 5. **Independent execution**: each attack is self-contained. If attack #3 crashes, attack #4 must still run.
-6. **No pip installs**: only use `torch`, `torch.nn`, and `npu_ir` (already available).
+6. **No pip installs**: only use `torch`, `torch.nn`, and `torch_ir` (already available).
 7. **Run scripts with `uv run python <script>`** from the project root `/home/jongho/my_compiler/`.
 
 ---

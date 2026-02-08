@@ -1,6 +1,6 @@
 # API 레퍼런스
 
-NPU IR 프레임워크의 공개 API 문서입니다.
+IR 추출 프레임워크의 공개 API 문서입니다.
 
 !!! info
     API 문서는 소스 코드 docstring에서 자동 생성됩니다. 전체 API 레퍼런스는 [영문 페이지](../api/index.md)를 참조하세요.
@@ -9,7 +9,7 @@ NPU IR 프레임워크의 공개 API 문서입니다.
 
 | 모듈 | 설명 |
 |------|------|
-| [IR 데이터 구조](ir.md) | `TensorMeta`, `OpNode`, `NPU_IR` |
+| [IR 데이터 구조](ir.md) | `TensorMeta`, `OpNode`, `IR` |
 | [Exporter](exporter.md) | `export_model`, `ExportError` |
 | [Converter](converter.md) | `IRConverter`, `ConversionError`, `convert_exported_program` |
 | [Executor](executor.md) | `IRExecutor`, `execute_ir`, `ExecutionError` |

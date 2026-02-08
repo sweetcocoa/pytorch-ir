@@ -1,6 +1,6 @@
 # Usage Guide
 
-This document explains the detailed usage of the NPU IR framework.
+This document explains the detailed usage of the IR extraction framework.
 
 ## 1. Basic Workflow
 
@@ -9,7 +9,7 @@ This document explains the detailed usage of the NPU IR framework.
 ```python
 import torch
 import torch.nn as nn
-from npu_ir import extract_ir
+from torch_ir import extract_ir
 
 # 1. Define model
 class MyModel(nn.Module):
@@ -122,7 +122,7 @@ for placeholder, sd_key in ir.weight_name_mapping.items():
 ir.save("model_ir.json")
 
 # Or use serializer
-from npu_ir import save_ir, serialize_ir
+from torch_ir import save_ir, serialize_ir
 
 save_ir(ir, "model_ir.json")
 
@@ -133,14 +133,14 @@ json_str = serialize_ir(ir)
 ### 3.2 Load from JSON File
 
 ```python
-from npu_ir import load_ir, deserialize_ir
+from torch_ir import load_ir, deserialize_ir
 
 # Load from file
 loaded_ir = load_ir("model_ir.json")
 
-# Or use NPU_IR.load()
-from npu_ir import NPU_IR
-loaded_ir = NPU_IR.load("model_ir.json")
+# Or use IR.load()
+from torch_ir import IR
+loaded_ir = IR.load("model_ir.json")
 
 # Deserialize from JSON string
 ir = deserialize_ir(json_str)
@@ -149,7 +149,7 @@ ir = deserialize_ir(json_str)
 ### 3.3 IR Validation
 
 ```python
-from npu_ir import validate_ir
+from torch_ir import validate_ir
 
 # Validate IR structure
 try:
@@ -166,7 +166,7 @@ except Exception as e:
 You can execute the IR with actual weights to obtain results.
 
 ```python
-from npu_ir import IRExecutor, execute_ir
+from torch_ir import IRExecutor, execute_ir
 
 # Get weights from original model
 original_model = MyModel()
@@ -189,7 +189,7 @@ print(f"Output shape: {outputs[0].shape}")
 ### 4.2 Verification Against Original Model
 
 ```python
-from npu_ir import verify_ir_with_state_dict, verify_ir
+from torch_ir import verify_ir_with_state_dict, verify_ir
 
 # Prepare original model
 original_model = MyModel()
@@ -317,7 +317,7 @@ ir = extract_ir(model, inputs)
 ### 6.1 Loading Weights
 
 ```python
-from npu_ir import load_weights, load_weights_pt, load_weights_safetensors
+from torch_ir import load_weights, load_weights_pt, load_weights_safetensors
 
 # Auto-detect format
 weights = load_weights('model.pt')
@@ -330,7 +330,7 @@ weights = load_weights_safetensors('model.safetensors')
 ### 6.2 Weight Validation
 
 ```python
-from npu_ir.weight_loader import validate_weights_against_ir
+from torch_ir.weight_loader import validate_weights_against_ir
 
 # Validate that weights match IR
 errors = validate_weights_against_ir(weights, ir)
@@ -369,8 +369,8 @@ print(ir.model_name)  # "MyCustomModel_v2"
 ### 7.3 Using IRConverter Directly
 
 ```python
-from npu_ir import export_model
-from npu_ir.converter import IRConverter, convert_exported_program
+from torch_ir import export_model
+from torch_ir.converter import IRConverter, convert_exported_program
 
 # Call torch.export directly
 exported = export_model(model, inputs, strict=False)
@@ -386,8 +386,8 @@ ir = convert_exported_program(exported, model_name="MyModel")
 ### 7.4 Using GraphAnalyzer Directly
 
 ```python
-from npu_ir import export_model
-from npu_ir.analyzer import GraphAnalyzer
+from torch_ir import export_model
+from torch_ir.analyzer import GraphAnalyzer
 
 exported = export_model(model, inputs, strict=False)
 analyzer = GraphAnalyzer(exported)
@@ -406,7 +406,7 @@ nodes = analyzer.get_call_function_nodes()
 
 ```python
 import torch
-from npu_ir import extract_ir, verify_ir_with_state_dict
+from torch_ir import extract_ir, verify_ir_with_state_dict
 
 def full_pipeline(model_class, input_shape, weights_path):
     """Full pipeline from IR extraction to verification"""
