@@ -102,23 +102,6 @@ def export_model(
         exported = torch.export.export(model, example_inputs)
         return exported
     except Exception as e:
-        # Provide helpful error messages for common issues
-        error_msg = str(e)
-
-        if "dynamic control flow" in error_msg.lower():
-            raise ExportError(
-                f"Model contains dynamic control flow which cannot be traced.\n"
-                f"Data-dependent if/for statements are not supported.\n"
-                f"Original error: {e}"
-            ) from e
-
-        if "getattr" in error_msg.lower() and "none" in error_msg.lower():
-            raise ExportError(
-                f"Model may have uninitialized attributes or None values.\n"
-                f"Ensure all model components are properly initialized.\n"
-                f"Original error: {e}"
-            ) from e
-
         raise ExportError(f"Failed to export model: {e}") from e
 
 

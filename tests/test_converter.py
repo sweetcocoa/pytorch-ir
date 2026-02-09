@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from torch_ir.converter import IRConverter, convert_exported_program
+from torch_ir.converter import convert_exported_program
 from torch_ir.exporter import export_model
 
 
@@ -62,23 +62,17 @@ class TestConvertExportedProgram:
             assert tensor_meta.dtype is not None
 
 
-class TestIRConverter:
-    """Tests for IRConverter class."""
+class TestConvertWithOptions:
+    """Tests for convert_exported_program with different options."""
 
-    def test_converter_instance(self):
-        """Test creating converter instance."""
-        converter = IRConverter(strict=False)
-        assert converter.strict is False
-
-    def test_convert_method(self):
-        """Test converter.convert() method."""
+    def test_convert_with_strict_false(self):
+        """Test convert with strict=False."""
         with torch.device("meta"):
             model = SimpleModel()
         inputs = (torch.randn(1, 10, device="meta"),)
         exported = export_model(model, inputs)
 
-        converter = IRConverter()
-        ir = converter.convert(exported, model_name="TestModel")
+        ir = convert_exported_program(exported, model_name="TestModel", strict=False)
 
         assert ir.model_name == "TestModel"
 

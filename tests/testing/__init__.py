@@ -7,7 +7,8 @@ This module provides:
 - Test runner with verification
 """
 
-from .mermaid import generate_op_distribution_pie, ir_to_mermaid
+from torch_ir.visualize import generate_op_distribution_pie, ir_to_mermaid
+
 from .report import ReportGenerator, TestResult
 from .runner import TestRunner
 from .statistics import IRStatistics

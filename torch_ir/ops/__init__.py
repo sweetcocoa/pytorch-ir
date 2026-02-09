@@ -21,8 +21,6 @@ Custom operators can be registered using decorators:
 from .registry import (
     get_conversion_fn,
     get_execution_fn,
-    is_supported_op,
-    list_registered_ops,
     register_executor,
     register_op,
 )
@@ -32,6 +30,4 @@ __all__ = [
     "register_executor",
     "get_conversion_fn",
     "get_execution_fn",
-    "list_registered_ops",
-    "is_supported_op",
 ]

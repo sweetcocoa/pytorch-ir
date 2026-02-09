@@ -71,11 +71,6 @@ def register_model(
     return decorator
 
 
-def get_model(name: str) -> Optional[TestModelSpec]:
-    """Get a model spec by name."""
-    return MODEL_REGISTRY.get(name)
-
-
 def list_models(category: Optional[str] = None) -> List[TestModelSpec]:
     """List all registered models, optionally filtered by category.
 

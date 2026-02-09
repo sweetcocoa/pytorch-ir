@@ -9,13 +9,12 @@ This module provides test models that cover various computational graph patterns
 
 # Import model definitions to register them
 from . import attention, multi_io, shared_weights, skip_connections
-from .base import MODEL_REGISTRY, TestModelSpec, get_model, list_categories, list_models, register_model
+from .base import MODEL_REGISTRY, TestModelSpec, list_categories, list_models, register_model
 
 __all__ = [
     "TestModelSpec",
     "MODEL_REGISTRY",
     "register_model",
-    "get_model",
     "list_models",
     "list_categories",
     # Side-effect imports (model registration)

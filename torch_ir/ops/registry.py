@@ -1,11 +1,6 @@
 """Operator registry for IR conversion and execution."""
 
-from functools import wraps
-from typing import TYPE_CHECKING, Callable, Dict, Optional
-
-if TYPE_CHECKING:
-    pass
-
+from typing import Callable, Dict, Optional
 
 # Registry for IR conversion functions (ATen op -> OpNode)
 _CONVERSION_REGISTRY: Dict[str, Callable] = {}
@@ -28,12 +23,7 @@ def register_op(op_pattern: str):
 
     def decorator(func: Callable) -> Callable:
         _CONVERSION_REGISTRY[op_pattern] = func
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return wrapper
+        return func
 
     return decorator
 
@@ -52,12 +42,7 @@ def register_executor(op_pattern: str):
 
     def decorator(func: Callable) -> Callable:
         _EXECUTION_REGISTRY[op_pattern] = func
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(*args, **kwargs)
-
-        return wrapper
+        return func
 
     return decorator
 
@@ -142,26 +127,3 @@ def get_execution_fn(op_type: str) -> Optional[Callable]:
         The execution function if registered, None otherwise.
     """
     return _lookup_registry(_EXECUTION_REGISTRY, op_type)
-
-
-def list_registered_ops() -> Dict[str, list]:
-    """List all registered operators.
-
-    Returns:
-        Dict with 'conversion' and 'execution' keys listing registered ops.
-    """
-    return {
-        "conversion": list(_CONVERSION_REGISTRY.keys()),
-        "execution": list(_EXECUTION_REGISTRY.keys()),
-    }
-
-
-def is_supported_op(op_type: str) -> bool:
-    """Check if an operator is supported for conversion."""
-    return get_conversion_fn(op_type) is not None
-
-
-def clear_registry() -> None:
-    """Clear all registered operators (useful for testing)."""
-    _CONVERSION_REGISTRY.clear()
-    _EXECUTION_REGISTRY.clear()
