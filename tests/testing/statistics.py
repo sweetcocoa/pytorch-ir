@@ -103,17 +103,3 @@ class IRStatistics:
             weight_metadata=weight_metadata,
             total_weight_params=total_weight_params,
         )
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to dictionary for serialization."""
-        return {
-            "num_nodes": self.num_nodes,
-            "num_edges": self.num_edges,
-            "num_inputs": self.num_inputs,
-            "num_outputs": self.num_outputs,
-            "num_weights": self.num_weights,
-            "op_distribution": self.op_distribution,
-            "node_shapes": self.node_shapes,
-            "weight_metadata": self.weight_metadata,
-            "total_weight_params": self.total_weight_params,
-        }

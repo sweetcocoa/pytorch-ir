@@ -1,9 +1,6 @@
 """ATen operator type normalization utilities."""
 
-from typing import Any, Dict, Optional
-
-from ..analyzer import NodeInfo
-from ..ir import OpNode
+from typing import Any
 
 
 def _normalize_op_type(target: Any) -> str:
@@ -30,36 +27,6 @@ def _normalize_op_type(target: Any) -> str:
         return target_str.replace("aten::", "aten.")
 
     return target_str
-
-
-def _create_op_node(
-    node_info: NodeInfo,
-    op_type: Optional[str] = None,
-    extra_attrs: Optional[Dict[str, Any]] = None,
-) -> OpNode:
-    """Create an ``OpNode`` from analyzed ``NodeInfo``.
-
-    Args:
-        node_info: Analyzed FX node information.
-        op_type: Override op type string. Uses ``_normalize_op_type`` if ``None``.
-        extra_attrs: Additional attributes to merge into the node's attrs.
-
-    Returns:
-        Constructed ``OpNode`` instance.
-    """
-    final_op_type = op_type or _normalize_op_type(node_info.target)
-
-    attrs = dict(node_info.attrs)
-    if extra_attrs:
-        attrs.update(extra_attrs)
-
-    return OpNode(
-        name=node_info.name,
-        op_type=final_op_type,
-        inputs=node_info.input_metas,
-        outputs=node_info.output_metas,
-        attrs=attrs,
-    )
 
 
 def get_op_type(target: Any) -> str:

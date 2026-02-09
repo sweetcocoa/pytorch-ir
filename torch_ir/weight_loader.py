@@ -1,7 +1,7 @@
 """Weight loader for .pt and .safetensors files."""
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
 
 import torch
 
@@ -161,65 +161,3 @@ def validate_weights_against_ir(
             )
 
     return errors
-
-
-class WeightLoader:
-    """Class-based interface for weight loading."""
-
-    def __init__(self, validate: bool = True):
-        """Initialize the loader.
-
-        Args:
-            validate: If True, validate weights against IR metadata.
-        """
-        self.validate = validate
-
-    def load(
-        self,
-        path: Union[str, Path],
-        ir: Optional[IR] = None,
-    ) -> Dict[str, torch.Tensor]:
-        """Load weights from a file.
-
-        Args:
-            path: Path to the weight file.
-            ir: Optional IR for validation.
-
-        Returns:
-            Dictionary mapping parameter names to tensors.
-
-        Raises:
-            WeightLoadError: If loading or validation fails.
-        """
-        weights = load_weights(path)
-
-        if self.validate and ir is not None:
-            errors = validate_weights_against_ir(weights, ir)
-            if errors:
-                raise WeightLoadError("Weight validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
-
-        return weights
-
-    def load_from_state_dict(
-        self,
-        state_dict: Dict[str, torch.Tensor],
-        ir: Optional[IR] = None,
-    ) -> Dict[str, torch.Tensor]:
-        """Use an existing state dict as weights.
-
-        Args:
-            state_dict: The state dict to use.
-            ir: Optional IR for validation.
-
-        Returns:
-            The same state dict (after validation if enabled).
-
-        Raises:
-            WeightLoadError: If validation fails.
-        """
-        if self.validate and ir is not None:
-            errors = validate_weights_against_ir(state_dict, ir)
-            if errors:
-                raise WeightLoadError("Weight validation failed:\n" + "\n".join(f"  - {e}" for e in errors))
-
-        return state_dict

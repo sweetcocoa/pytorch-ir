@@ -31,17 +31,15 @@ from typing import Any, Optional, Tuple
 
 import torch.nn as nn
 
-from .analyzer import GraphAnalyzer
-from .converter import ConversionError, IRConverter, convert_exported_program
+from .converter import ConversionError, convert_exported_program
 from .executor import ExecutionError, IRExecutor, execute_ir
 from .exporter import ExportError, export_model, get_model_name
 from .ir import IR, OpNode, TensorMeta
 
 # Import aten ops and implementations to register them
-from .ops import aten_impl, aten_ops
-from .ops.registry import list_registered_ops, register_executor, register_op
+from .ops import aten_impl, aten_ops  # noqa: F401
+from .ops.registry import register_executor, register_op
 from .serializer import (
-    IRSerializer,
     SerializationError,
     deserialize_ir,
     load_ir,
@@ -49,10 +47,9 @@ from .serializer import (
     serialize_ir,
     validate_ir,
 )
-from .verifier import IRVerifier, VerificationReport, verify_ir, verify_ir_with_state_dict
+from .verifier import VerificationReport, verify_ir, verify_ir_with_state_dict
 from .visualize import generate_op_distribution_pie, ir_to_mermaid
 from .weight_loader import (
-    WeightLoader,
     WeightLoadError,
     load_weights,
     load_weights_pt,
@@ -77,7 +74,7 @@ __all__ = [
     "export_model",
     "ExportError",
     # Converter
-    "IRConverter",
+    "convert_exported_program",
     "ConversionError",
     # Serialization
     "serialize_ir",
@@ -85,7 +82,6 @@ __all__ = [
     "save_ir",
     "load_ir",
     "validate_ir",
-    "IRSerializer",
     "SerializationError",
     # Execution
     "IRExecutor",
@@ -95,24 +91,15 @@ __all__ = [
     "load_weights",
     "load_weights_pt",
     "load_weights_safetensors",
-    "WeightLoader",
     "WeightLoadError",
     # Verification
-    "IRVerifier",
     "VerificationReport",
     # Op registration
     "register_op",
     "register_executor",
-    "list_registered_ops",
-    # Re-exports
-    "GraphAnalyzer",
-    "get_model_name",
     # Visualization
     "ir_to_mermaid",
     "generate_op_distribution_pie",
-    # Side-effect imports (op registration)
-    "aten_ops",
-    "aten_impl",
 ]
 
 

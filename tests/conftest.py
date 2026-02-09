@@ -1,7 +1,7 @@
 """Pytest configuration and fixtures for comprehensive testing."""
 
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import pytest
 
@@ -45,7 +45,7 @@ class ReportCollector:
 
 
 # Global collector instance
-_report_collector: Optional[ReportCollector] = None
+_report_collector: "ReportCollector | None" = None
 
 
 @pytest.fixture(scope="session")
@@ -58,21 +58,9 @@ def report_collector(request) -> ReportCollector:
 
 
 @pytest.fixture(scope="session")
-def output_dir(request) -> Path:
-    """Fixture to get output directory from command line."""
-    return Path(request.config.getoption("--output"))
-
-
-@pytest.fixture(scope="session")
 def generate_reports(request) -> bool:
     """Fixture to check if reports should be generated."""
     return request.config.getoption("--generate-reports")
-
-
-@pytest.fixture(scope="session")
-def category_filter(request) -> Optional[str]:
-    """Fixture to get category filter from command line."""
-    return request.config.getoption("--category")
 
 
 def pytest_sessionfinish(session, exitstatus):

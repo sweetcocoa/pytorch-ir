@@ -9,7 +9,6 @@ import torch.nn as nn
 
 from torch_ir import extract_ir
 from torch_ir.verifier import (
-    IRVerifier,
     VerificationReport,
     _compare_tensors,
     verify_ir,
@@ -176,17 +175,11 @@ class TestVerifyIR:
             os.unlink(weights_path)
 
 
-class TestIRVerifier:
-    """Tests for IRVerifier class."""
+class TestVerifyWithCustomTolerance:
+    """Tests for verify functions with custom tolerance."""
 
-    def test_verifier_instance(self):
-        """Test creating verifier instance."""
-        verifier = IRVerifier(rtol=1e-4, atol=1e-4)
-        assert verifier.rtol == 1e-4
-        assert verifier.atol == 1e-4
-
-    def test_verifier_verify_with_state_dict(self):
-        """Test verifier.verify_with_state_dict()."""
+    def test_verify_with_state_dict_custom_tolerance(self):
+        """Test verify_ir_with_state_dict with custom tolerance."""
         model = SimpleModel()
         model.eval()
 
@@ -195,12 +188,13 @@ class TestIRVerifier:
         inputs = (torch.randn(1, 10, device="meta"),)
         ir = extract_ir(meta_model, inputs, strict=False)
 
-        verifier = IRVerifier()
-        is_valid, report = verifier.verify_with_state_dict(
+        is_valid, report = verify_ir_with_state_dict(
             ir=ir,
             state_dict=model.state_dict(),
             original_model=model,
             test_inputs=(torch.randn(1, 10),),
+            rtol=1e-4,
+            atol=1e-4,
         )
 
         assert is_valid

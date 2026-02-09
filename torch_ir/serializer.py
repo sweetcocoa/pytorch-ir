@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Union
 
 from .ir import IR, TensorMeta
 
@@ -96,19 +96,9 @@ def validate_ir(ir: IR) -> bool:
     """
     errors = []
 
-    # Check required fields
-    if ir.nodes is None:
-        errors.append("nodes is required")
-    if ir.graph_inputs is None:
-        errors.append("graph_inputs is required")
-    if ir.graph_outputs is None:
-        errors.append("graph_outputs is required")
-    if ir.weights is None:
-        errors.append("weights is required")
-
     # Validate nodes
     node_names = set()
-    for i, node in enumerate(ir.nodes or []):
+    for i, node in enumerate(ir.nodes):
         if not node.name:
             errors.append(f"Node {i} missing name")
         elif node.name in node_names:
@@ -128,11 +118,11 @@ def validate_ir(ir: IR) -> bool:
         if not meta.dtype:
             errors.append(f"{context} '{meta.name}': missing dtype")
 
-    for meta in ir.graph_inputs or []:
+    for meta in ir.graph_inputs:
         validate_tensor_meta(meta, "graph_input")
-    for meta in ir.graph_outputs or []:
+    for meta in ir.graph_outputs:
         validate_tensor_meta(meta, "graph_output")
-    for meta in ir.weights or []:
+    for meta in ir.weights:
         validate_tensor_meta(meta, "weight")
 
     if errors:
@@ -141,91 +131,3 @@ def validate_ir(ir: IR) -> bool:
         )
 
     return True
-
-
-def ir_to_dict(ir: IR) -> Dict[str, Any]:
-    """Convert ``IR`` to a plain dictionary for custom serialization.
-
-    Args:
-        ir: The IR to convert.
-
-    Returns:
-        JSON-serializable dictionary.
-    """
-    return ir.to_dict()
-
-
-def dict_to_ir(data: Dict[str, Any]) -> IR:
-    """Convert a plain dictionary back to ``IR``.
-
-    Args:
-        data: Dictionary previously produced by ``ir_to_dict()``.
-
-    Returns:
-        Reconstructed ``IR`` instance.
-    """
-    return IR.from_dict(data)
-
-
-class IRSerializer:
-    """Class-based interface for IR serialization with optional validation."""
-
-    def __init__(self, validate: bool = True):
-        """Initialize the serializer.
-
-        Args:
-            validate: If True, validate IR before serialization.
-        """
-        self.validate = validate
-
-    def serialize(self, ir: IR) -> str:
-        """Serialize IR to JSON string.
-
-        Args:
-            ir: The IR to serialize.
-
-        Returns:
-            JSON string representation.
-        """
-        if self.validate:
-            validate_ir(ir)
-        return serialize_ir(ir)
-
-    def deserialize(self, json_str: str) -> IR:
-        """Deserialize IR from JSON string.
-
-        Args:
-            json_str: JSON string to parse.
-
-        Returns:
-            Deserialized ``IR`` instance.
-        """
-        ir = deserialize_ir(json_str)
-        if self.validate:
-            validate_ir(ir)
-        return ir
-
-    def save(self, ir: IR, path: Union[str, Path]) -> None:
-        """Save IR to a JSON file.
-
-        Args:
-            ir: The IR to save.
-            path: Output file path.
-        """
-        if self.validate:
-            validate_ir(ir)
-        save_ir(ir, path)
-
-    def load(self, path: Union[str, Path]) -> IR:
-        """Load IR from a JSON file.
-
-        Args:
-            path: Input file path.
-
-        Returns:
-            Deserialized ``IR`` instance.
-        """
-        ir = load_ir(path)
-        if self.validate:
-            validate_ir(ir)
-        return ir

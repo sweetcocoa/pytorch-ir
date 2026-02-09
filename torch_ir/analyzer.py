@@ -1,7 +1,7 @@
 """Graph analyzer for extracting metadata from ExportedProgram."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 import torch
 from torch.export import ExportedProgram
@@ -16,20 +16,14 @@ class NodeInfo:
 
     Attributes:
         name: Node name from the FX graph.
-        op: FX node operation type (``"call_function"``, ``"placeholder"``, ``"output"``, ``"get_attr"``).
         target: The operation target (e.g., ``torch.ops.aten.conv2d.default``).
-        args: Raw positional arguments from the FX node.
-        kwargs: Raw keyword arguments from the FX node.
         input_metas: Metadata of input tensors with producer tracking information.
         output_metas: Metadata of output tensors inferred from ``node.meta["val"]``.
         attrs: Operation attributes extracted via schema introspection (e.g., ``kernel_size``, ``stride``).
     """
 
     name: str
-    op: str
     target: Any
-    args: Tuple[Any, ...]
-    kwargs: Dict[str, Any]
     input_metas: List[TensorMeta]
     output_metas: List[TensorMeta]
     attrs: Dict[str, Any]
@@ -93,19 +87,6 @@ def _extract_node_output_meta(node: Node) -> List[TensorMeta]:
 
     val = node.meta["val"]
     return _extract_tensor_meta(val, node.name)
-
-
-def _get_input_names(node: Node) -> List[str]:
-    """Get input tensor names from node args."""
-    input_names = []
-    for arg in node.args:
-        if isinstance(arg, Node):
-            input_names.append(arg.name)
-        elif isinstance(arg, (list, tuple)):
-            for a in arg:
-                if isinstance(a, Node):
-                    input_names.append(a.name)
-    return input_names
 
 
 def _extract_op_attrs(node: Node) -> Dict[str, Any]:
@@ -351,10 +332,7 @@ class GraphAnalyzer:
                 nodes.append(
                     NodeInfo(
                         name=node.name,
-                        op=node.op,
                         target=target,
-                        args=node.args,
-                        kwargs=dict(node.kwargs),
                         input_metas=input_metas,
                         output_metas=output_metas,
                         attrs=attrs,
@@ -362,10 +340,3 @@ class GraphAnalyzer:
                 )
 
         return nodes
-
-    def get_op_target_str(self, node: Node) -> str:
-        """Get string representation of operation target."""
-        target = node.target
-        if hasattr(target, "__module__") and hasattr(target, "__name__"):
-            return f"{target.__module__}.{target.__name__}"
-        return str(target)

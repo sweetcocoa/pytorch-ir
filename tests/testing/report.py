@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from torch_ir import IR, VerificationReport
+from torch_ir.visualize import generate_op_distribution_pie, ir_to_mermaid
 
-from .mermaid import generate_op_distribution_pie, ir_to_mermaid
 from .statistics import IRStatistics
 
 
@@ -220,32 +220,28 @@ class ReportGenerator:
         lines.append("## Results by Category")
         lines.append("")
 
-        # Group by categories (requires importing models)
-        try:
-            from tests.models import MODEL_REGISTRY
+        from tests.models import MODEL_REGISTRY
 
-            category_results: dict = {}
-            for result in results:
-                spec = MODEL_REGISTRY.get(result.model_name)
-                if spec:
-                    for cat in spec.categories:
-                        if cat not in category_results:
-                            category_results[cat] = {"passed": 0, "failed": 0}
-                        if result.passed:
-                            category_results[cat]["passed"] += 1
-                        else:
-                            category_results[cat]["failed"] += 1
+        category_results: dict = {}
+        for result in results:
+            spec = MODEL_REGISTRY.get(result.model_name)
+            if spec:
+                for cat in spec.categories:
+                    if cat not in category_results:
+                        category_results[cat] = {"passed": 0, "failed": 0}
+                    if result.passed:
+                        category_results[cat]["passed"] += 1
+                    else:
+                        category_results[cat]["failed"] += 1
 
-            lines.append("| Category | Passed | Failed | Total |")
-            lines.append("|----------|--------|--------|-------|")
+        lines.append("| Category | Passed | Failed | Total |")
+        lines.append("|----------|--------|--------|-------|")
 
-            for cat, counts in sorted(category_results.items()):
-                total_cat = counts["passed"] + counts["failed"]
-                lines.append(f"| {cat} | {counts['passed']} | {counts['failed']} | {total_cat} |")
+        for cat, counts in sorted(category_results.items()):
+            total_cat = counts["passed"] + counts["failed"]
+            lines.append(f"| {cat} | {counts['passed']} | {counts['failed']} | {total_cat} |")
 
-            lines.append("")
-        except ImportError:
-            pass
+        lines.append("")
 
         # Failed tests details
         failed_results = [r for r in results if not r.passed]

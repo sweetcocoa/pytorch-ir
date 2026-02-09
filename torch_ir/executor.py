@@ -298,8 +298,6 @@ def _execute_node(
     # Default: call original ATen op directly
     try:
         return _aten_fallback(node, inputs)
-    except ExecutionError:
-        raise
     except Exception as e:
         raise ExecutionError(f"Failed to execute node '{node.name}' (op: {node.op_type}): {e}") from e
 
@@ -324,7 +322,6 @@ class IRExecutor:
         self.ir = ir
         self.weights = weights
         self.registry = TensorRegistry()
-        self._prepared = False
 
     def load_weights(self, path: Union[str, Path]) -> None:
         """Load weights from a file.
@@ -374,8 +371,6 @@ class IRExecutor:
         for input_meta, tensor in zip(self.ir.graph_inputs, inputs):
             self.registry.register(input_meta.name, tensor)
 
-        self._prepared = True
-
     def execute(self, inputs: Tuple[torch.Tensor, ...]) -> Tuple[torch.Tensor, ...]:
         """Execute the IR graph.
 
@@ -423,10 +418,6 @@ class IRExecutor:
             outputs.append(self.registry[output_meta.name])
 
         return tuple(outputs)
-
-    def __call__(self, *inputs: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        """Execute the IR graph (shorthand for execute())."""
-        return self.execute(inputs)
 
 
 def execute_ir(

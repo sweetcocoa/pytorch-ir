@@ -79,6 +79,73 @@ def _compare_tensors(
     return is_close, max_diff, mean_diff
 
 
+def _verify_outputs(
+    original_outputs: Tuple[torch.Tensor, ...],
+    ir_outputs: Tuple[torch.Tensor, ...],
+    rtol: float,
+    atol: float,
+) -> Tuple[bool, VerificationReport]:
+    """Compare original and IR outputs and produce a verification report."""
+    if len(original_outputs) != len(ir_outputs):
+        return False, VerificationReport(
+            is_valid=False,
+            num_outputs=len(ir_outputs),
+            error_message=(f"Output count mismatch: original={len(original_outputs)}, ir={len(ir_outputs)}"),
+        )
+
+    all_close = True
+    max_diff_overall = 0.0
+    mean_diff_overall = 0.0
+    output_details = []
+
+    for i, (orig, ir_out) in enumerate(zip(original_outputs, ir_outputs)):
+        is_close, max_diff, mean_diff = _compare_tensors(orig, ir_out, rtol, atol)
+
+        output_details.append(
+            {
+                "index": i,
+                "shape": list(orig.shape),
+                "is_close": is_close,
+                "max_diff": max_diff,
+                "mean_diff": mean_diff,
+            }
+        )
+
+        if not is_close:
+            all_close = False
+
+        max_diff_overall = max(max_diff_overall, max_diff)
+        mean_diff_overall = max(mean_diff_overall, mean_diff)
+
+    report = VerificationReport(
+        is_valid=all_close,
+        max_diff=max_diff_overall,
+        mean_diff=mean_diff_overall,
+        num_outputs=len(ir_outputs),
+        output_details=output_details,
+        error_message=None if all_close else "Output tensors do not match within tolerance",
+    )
+
+    return all_close, report
+
+
+def _run_original_model(
+    original_model: nn.Module,
+    test_inputs: Tuple[torch.Tensor, ...],
+) -> Tuple[torch.Tensor, ...]:
+    """Run the original model and normalize outputs to a tuple."""
+    original_model.eval()
+    with torch.no_grad():
+        original_outputs = original_model(*test_inputs)
+
+    if isinstance(original_outputs, torch.Tensor):
+        original_outputs = (original_outputs,)
+    elif not isinstance(original_outputs, tuple):
+        original_outputs = tuple(original_outputs)
+
+    return original_outputs
+
+
 def verify_ir(
     ir: IR,
     weights_path: Union[str, Path],
@@ -101,64 +168,10 @@ def verify_ir(
         Tuple of (is_valid, report).
     """
     try:
-        # Run original model
-        original_model.eval()
-        with torch.no_grad():
-            original_outputs = original_model(*test_inputs)
-
-        # Normalize to tuple
-        if isinstance(original_outputs, torch.Tensor):
-            original_outputs = (original_outputs,)
-        elif not isinstance(original_outputs, tuple):
-            original_outputs = tuple(original_outputs)
-
-        # Load weights and execute IR
+        original_outputs = _run_original_model(original_model, test_inputs)
         weights = load_weights(weights_path)
         ir_outputs = execute_ir(ir, test_inputs, weights=weights)
-
-        # Compare outputs
-        if len(original_outputs) != len(ir_outputs):
-            return False, VerificationReport(
-                is_valid=False,
-                num_outputs=len(ir_outputs),
-                error_message=(f"Output count mismatch: original={len(original_outputs)}, ir={len(ir_outputs)}"),
-            )
-
-        all_close = True
-        max_diff_overall = 0.0
-        mean_diff_overall = 0.0
-        output_details = []
-
-        for i, (orig, ir_out) in enumerate(zip(original_outputs, ir_outputs)):
-            is_close, max_diff, mean_diff = _compare_tensors(orig, ir_out, rtol, atol)
-
-            output_details.append(
-                {
-                    "index": i,
-                    "shape": list(orig.shape),
-                    "is_close": is_close,
-                    "max_diff": max_diff,
-                    "mean_diff": mean_diff,
-                }
-            )
-
-            if not is_close:
-                all_close = False
-
-            max_diff_overall = max(max_diff_overall, max_diff)
-            mean_diff_overall = max(mean_diff_overall, mean_diff)
-
-        report = VerificationReport(
-            is_valid=all_close,
-            max_diff=max_diff_overall,
-            mean_diff=mean_diff_overall,
-            num_outputs=len(ir_outputs),
-            output_details=output_details,
-            error_message=None if all_close else "Output tensors do not match within tolerance",
-        )
-
-        return all_close, report
-
+        return _verify_outputs(original_outputs, ir_outputs, rtol, atol)
     except Exception as e:
         return False, VerificationReport(
             is_valid=False,
@@ -188,137 +201,11 @@ def verify_ir_with_state_dict(
         Tuple of (is_valid, report).
     """
     try:
-        # Run original model
-        original_model.eval()
-        with torch.no_grad():
-            original_outputs = original_model(*test_inputs)
-
-        # Normalize to tuple
-        if isinstance(original_outputs, torch.Tensor):
-            original_outputs = (original_outputs,)
-        elif not isinstance(original_outputs, tuple):
-            original_outputs = tuple(original_outputs)
-
-        # Execute IR with state dict
+        original_outputs = _run_original_model(original_model, test_inputs)
         ir_outputs = execute_ir(ir, test_inputs, weights=state_dict)
-
-        # Compare outputs
-        if len(original_outputs) != len(ir_outputs):
-            return False, VerificationReport(
-                is_valid=False,
-                num_outputs=len(ir_outputs),
-                error_message=(f"Output count mismatch: original={len(original_outputs)}, ir={len(ir_outputs)}"),
-            )
-
-        all_close = True
-        max_diff_overall = 0.0
-        mean_diff_overall = 0.0
-        output_details = []
-
-        for i, (orig, ir_out) in enumerate(zip(original_outputs, ir_outputs)):
-            is_close, max_diff, mean_diff = _compare_tensors(orig, ir_out, rtol, atol)
-
-            output_details.append(
-                {
-                    "index": i,
-                    "shape": list(orig.shape),
-                    "is_close": is_close,
-                    "max_diff": max_diff,
-                    "mean_diff": mean_diff,
-                }
-            )
-
-            if not is_close:
-                all_close = False
-
-            max_diff_overall = max(max_diff_overall, max_diff)
-            mean_diff_overall = max(mean_diff_overall, mean_diff)
-
-        report = VerificationReport(
-            is_valid=all_close,
-            max_diff=max_diff_overall,
-            mean_diff=mean_diff_overall,
-            num_outputs=len(ir_outputs),
-            output_details=output_details,
-            error_message=None if all_close else "Output tensors do not match within tolerance",
-        )
-
-        return all_close, report
-
+        return _verify_outputs(original_outputs, ir_outputs, rtol, atol)
     except Exception as e:
         return False, VerificationReport(
             is_valid=False,
             error_message=f"Verification error: {str(e)}",
-        )
-
-
-class IRVerifier:
-    """Class-based interface for IR verification.
-
-    Provides ``verify()`` and ``verify_with_state_dict()`` methods with
-    configurable tolerance values set at initialization.
-    """
-
-    def __init__(self, rtol: float = 1e-5, atol: float = 1e-5):
-        """Initialize the verifier.
-
-        Args:
-            rtol: Relative tolerance for comparison.
-            atol: Absolute tolerance for comparison.
-        """
-        self.rtol = rtol
-        self.atol = atol
-
-    def verify(
-        self,
-        ir: IR,
-        weights_path: Union[str, Path],
-        original_model: nn.Module,
-        test_inputs: Tuple[torch.Tensor, ...],
-    ) -> Tuple[bool, VerificationReport]:
-        """Verify IR against original model using weights from file.
-
-        Args:
-            ir: The IR graph to verify.
-            weights_path: Path to the weight file (``.pt`` or ``.safetensors``).
-            original_model: The original PyTorch model with weights loaded.
-            test_inputs: Test input tensors.
-
-        Returns:
-            Tuple of ``(is_valid, report)``.
-        """
-        return verify_ir(
-            ir=ir,
-            weights_path=weights_path,
-            original_model=original_model,
-            test_inputs=test_inputs,
-            rtol=self.rtol,
-            atol=self.atol,
-        )
-
-    def verify_with_state_dict(
-        self,
-        ir: IR,
-        state_dict: Dict[str, torch.Tensor],
-        original_model: nn.Module,
-        test_inputs: Tuple[torch.Tensor, ...],
-    ) -> Tuple[bool, VerificationReport]:
-        """Verify IR against original model using an in-memory state dict.
-
-        Args:
-            ir: The IR graph to verify.
-            state_dict: Weight state dict.
-            original_model: The original PyTorch model with weights loaded.
-            test_inputs: Test input tensors.
-
-        Returns:
-            Tuple of ``(is_valid, report)``.
-        """
-        return verify_ir_with_state_dict(
-            ir=ir,
-            state_dict=state_dict,
-            original_model=original_model,
-            test_inputs=test_inputs,
-            rtol=self.rtol,
-            atol=self.atol,
         )

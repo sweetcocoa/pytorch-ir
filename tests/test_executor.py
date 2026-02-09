@@ -100,14 +100,13 @@ class TestIRExecutor:
         assert len(outputs) >= 1
         assert outputs[0].shape == (1, 5)
 
-    def test_executor_call(self, simple_model_and_ir):
-        """Test calling executor directly."""
+    def test_executor_execute_tuple(self, simple_model_and_ir):
+        """Test calling executor.execute() with tuple input."""
         model, ir = simple_model_and_ir
 
         executor = IRExecutor(ir, weights=model.state_dict())
 
-        inputs = torch.randn(1, 10)
-        outputs = executor(inputs)
+        outputs = executor.execute((torch.randn(1, 10),))
 
         assert len(outputs) >= 1
 

@@ -126,35 +126,3 @@ def convert_exported_program(
         model_name=model_name,
         pytorch_version=torch.__version__,
     )
-
-
-class IRConverter:
-    """Class-based interface for IR conversion with customization options."""
-
-    def __init__(self, strict: bool = False):
-        """Initialize the converter.
-
-        Args:
-            strict: If True, raise errors for unsupported operations.
-        """
-        self.strict = strict
-
-    def convert(
-        self,
-        exported: ExportedProgram,
-        model_name: str = "",
-    ) -> IR:
-        """Convert an ExportedProgram to IR.
-
-        Args:
-            exported: The exported program from torch.export.
-            model_name: Optional name for the model.
-
-        Returns:
-            The converted IR.
-        """
-        return convert_exported_program(
-            exported,
-            model_name=model_name,
-            strict=self.strict,
-        )
