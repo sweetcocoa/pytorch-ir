@@ -27,8 +27,10 @@ Example usage:
     )
 """
 
+import warnings
 from typing import Any, Optional, Tuple
 
+import torch
 import torch.nn as nn
 
 from .converter import ConversionError, convert_exported_program
@@ -152,14 +154,18 @@ def extract_ir(
 
     # Capture lifted tensor constants from export
     if hasattr(exported, "constants") and exported.constants:
-        for name, tensor in exported.constants.items():
-            if tensor.device.type == "meta":
-                raise ConversionError(
-                    f"Lifted tensor constant '{name}' is on meta device and has no data. "
-                    f"This happens when forward() creates tensors via torch.tensor(...). "
-                    f"Fix: use self.register_buffer('{name}', tensor) in __init__() instead, "
-                    f"or pass a CPU-device model to extract_ir()."
-                )
-        ir.constants = dict(exported.constants)
+        meta_constants = [
+            name
+            for name, tensor in exported.constants.items()
+            if isinstance(tensor, torch.Tensor) and tensor.device.type == "meta"
+        ]
+        if meta_constants:
+            warnings.warn(
+                f"Skipping {len(meta_constants)} meta-device constant(s) "
+                f"(shape/dtype already in weights): {meta_constants}"
+            )
+        ir.constants = {
+            k: v for k, v in exported.constants.items() if isinstance(v, torch.Tensor) and v.device.type != "meta"
+        }
 
     return ir
