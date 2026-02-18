@@ -195,11 +195,11 @@ torch.export는 파라미터에 `p_` prefix를 사용합니다:
 - **Dynamic control flow**: 데이터 의존적 if/for문
 - **일부 custom autograd function**
 - **복잡한 Python 동작**: list comprehension, 동적 attribute 등
-- **Meta device 상수**: `forward()`에서 `torch.tensor(...)`로 생성한 상수 (meta device에서 데이터 없음)
+- **Meta device lifted constants**: 일반 텐서 속성(`self.x = torch.tensor(...)`)은 meta device에서 값이 손실됩니다. 해결 방법은 [Lifted Tensor Constants](lifted-tensor.md)를 참조하세요.
 
 ### 5.2 권장 사항
 
 1. 모델은 반드시 `eval()` 모드로 설정
 2. 입력 모델과 example inputs 모두 meta device 사용
 3. 검증 시 동일한 입력으로 테스트
-4. `forward()`에서 텐서 상수 생성 대신 `self.register_buffer()` 사용
+4. 가능하면 일반 텐서 속성 대신 `self.register_buffer()` 사용 ([Lifted Tensor Constants](lifted-tensor.md) 참조)

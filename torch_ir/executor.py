@@ -312,15 +312,27 @@ class IRExecutor:
         outputs = executor.execute((input_tensor,))
     """
 
-    def __init__(self, ir: IR, weights: Optional[Dict[str, torch.Tensor]] = None):
+    def __init__(
+        self,
+        ir: IR,
+        weights: Optional[Dict[str, torch.Tensor]] = None,
+        constants: Optional[Dict[str, torch.Tensor]] = None,
+    ):
         """Initialize the executor.
 
         Args:
             ir: The IR graph to execute.
             weights: Optional pre-loaded weights. If None, must call load_weights().
+            constants: Optional lifted tensor constants. When provided, these
+                override ``ir.constants`` and are used for constant placeholders
+                that are not part of the model's ``state_dict`` (e.g., index
+                tensors assigned as plain attributes). This is needed when
+                the IR was extracted on meta device, where constant values
+                are unavailable.
         """
         self.ir = ir
         self.weights = weights
+        self.constants = constants
         self.registry = TensorRegistry()
 
     def load_weights(self, path: Union[str, Path]) -> None:
@@ -355,9 +367,14 @@ class IRExecutor:
                 if sd_key in self.weights:
                     self.registry.register(placeholder_name, self.weights[sd_key])
 
-        # Register lifted tensor constants (e.g., index tensors in forward())
-        if self.ir.constants:
-            for const_name, const_tensor in self.ir.constants.items():
+        # Register lifted tensor constants (e.g., index tensors in forward()).
+        # User-supplied constants take precedence over ir.constants so that
+        # meta-device-extracted IRs can be executed with externally provided values.
+        effective_constants = self.ir.constants.copy()
+        if self.constants:
+            effective_constants.update(self.constants)
+        if effective_constants:
+            for const_name, const_tensor in effective_constants.items():
                 self.registry.register(const_name, const_tensor)
                 # Also register with placeholder prefix if mapped
                 for placeholder_name, sd_key in self.ir.weight_name_mapping.items():
@@ -425,6 +442,7 @@ def execute_ir(
     inputs: Tuple[torch.Tensor, ...],
     weights: Optional[Dict[str, torch.Tensor]] = None,
     weights_path: Optional[Union[str, Path]] = None,
+    constants: Optional[Dict[str, torch.Tensor]] = None,
 ) -> Tuple[torch.Tensor, ...]:
     """Execute an IR graph (convenience function).
 
@@ -433,6 +451,8 @@ def execute_ir(
         inputs: Input tensors.
         weights: Pre-loaded weights dict.
         weights_path: Path to weight file (alternative to weights).
+        constants: Optional lifted tensor constants for meta-device-extracted IRs.
+            See :class:`IRExecutor` for details.
 
     Returns:
         Output tensors.
@@ -444,7 +464,7 @@ def execute_ir(
     if weights is None and weights_path is None:
         raise ValueError("Either weights or weights_path must be provided")
 
-    executor = IRExecutor(ir, weights)
+    executor = IRExecutor(ir, weights, constants=constants)
 
     if weights_path is not None:
         executor.load_weights(weights_path)

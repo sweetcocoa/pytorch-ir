@@ -153,6 +153,7 @@ def verify_ir(
     test_inputs: Tuple[torch.Tensor, ...],
     rtol: float = 1e-5,
     atol: float = 1e-5,
+    constants: Optional[Dict[str, torch.Tensor]] = None,
 ) -> Tuple[bool, VerificationReport]:
     """Verify that IR execution matches original model output.
 
@@ -163,6 +164,7 @@ def verify_ir(
         test_inputs: Test input tensors.
         rtol: Relative tolerance for torch.allclose.
         atol: Absolute tolerance for torch.allclose.
+        constants: Optional lifted tensor constants for meta-device-extracted IRs.
 
     Returns:
         Tuple of (is_valid, report).
@@ -170,7 +172,7 @@ def verify_ir(
     try:
         original_outputs = _run_original_model(original_model, test_inputs)
         weights = load_weights(weights_path)
-        ir_outputs = execute_ir(ir, test_inputs, weights=weights)
+        ir_outputs = execute_ir(ir, test_inputs, weights=weights, constants=constants)
         return _verify_outputs(original_outputs, ir_outputs, rtol, atol)
     except Exception as e:
         return False, VerificationReport(
@@ -186,6 +188,7 @@ def verify_ir_with_state_dict(
     test_inputs: Tuple[torch.Tensor, ...],
     rtol: float = 1e-5,
     atol: float = 1e-5,
+    constants: Optional[Dict[str, torch.Tensor]] = None,
 ) -> Tuple[bool, VerificationReport]:
     """Verify IR execution using a state dict instead of file.
 
@@ -196,13 +199,14 @@ def verify_ir_with_state_dict(
         test_inputs: Test input tensors.
         rtol: Relative tolerance.
         atol: Absolute tolerance.
+        constants: Optional lifted tensor constants for meta-device-extracted IRs.
 
     Returns:
         Tuple of (is_valid, report).
     """
     try:
         original_outputs = _run_original_model(original_model, test_inputs)
-        ir_outputs = execute_ir(ir, test_inputs, weights=state_dict)
+        ir_outputs = execute_ir(ir, test_inputs, weights=state_dict, constants=constants)
         return _verify_outputs(original_outputs, ir_outputs, rtol, atol)
     except Exception as e:
         return False, VerificationReport(

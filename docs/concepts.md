@@ -195,11 +195,11 @@ torch.export uses `p_` prefix for parameters:
 - **Dynamic control flow**: Data-dependent if/for statements
 - **Some custom autograd functions**
 - **Complex Python behavior**: list comprehension, dynamic attributes, etc.
-- **Meta device constants**: Constants created with `torch.tensor(...)` in `forward()` (no data on meta device)
+- **Meta device lifted constants**: Plain tensor attributes (`self.x = torch.tensor(...)`) lose their values on meta device. See [Lifted Tensor Constants](lifted-tensor.md) for workarounds.
 
 ### 5.2 Recommendations
 
 1. Model must be set to `eval()` mode
 2. Both input model and example inputs should use meta device
 3. Test with the same inputs during verification
-4. Use `self.register_buffer()` instead of creating tensor constants in `forward()`
+4. Use `self.register_buffer()` instead of plain tensor attributes where possible (see [Lifted Tensor Constants](lifted-tensor.md))
