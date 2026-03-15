@@ -16,6 +16,25 @@ That does **not** mean extraction is cheap. For huge models, the expensive parts
 
 In practice, huge-model extraction is mostly about making the forward path export-friendly and giving `extract_ir()` a stable, compiler-oriented callable interface.
 
+## Why Kimi-K2.5
+
+Kimi-K2.5 is a good huge-model case study for inference infrastructure work because it combines several characteristics that make export non-trivial:
+
+- around **1T total parameters** with **32B activated parameters**
+- **256K context length**
+- **61 layers**
+- **384 routed experts** with **8 selected experts per token**
+- multimodal top-level architecture, even though many inference stacks only need text generation
+
+This makes it a realistic example for:
+
+- large static-cache interfaces
+- prefill/decode graph splitting
+- MoE export constraints
+- remote-config plus local-model patching
+
+We use the **text-only** IR path here simply for convenience. The goal of this guide is to show the huge-model extraction pattern, not to cover the multimodal stack.
+
 ## Case Study: Kimi-K2.5 Text-Only IR Extraction
 
 The example flow uses three ideas together:
@@ -35,6 +54,30 @@ So the practical extraction target becomes:
 
 - remote config from Hugging Face
 - local text-only modeling code with export-friendly patches
+
+## Extraction Flow
+
+```mermaid
+flowchart TD
+    A["Load remote Kimi text config<br/>AutoConfig(..., trust_remote_code=True)"]
+    B["Normalize config<br/>force eager attention"]
+    C["Instantiate local patched text-only model<br/>on meta device"]
+    D["Build fixed-shape prefill inputs"]
+    E["Build fixed-shape decode inputs<br/>with flattened KV tensors"]
+    F["Wrap model for prefill ABI<br/>logits + flattened KV outputs"]
+    G["Wrap model for decode ABI<br/>flattened KV inputs/outputs"]
+    H["extract_ir(prefill_wrapper, ...)"]
+    I["extract_ir(decode_wrapper, ...)"]
+    J["Save prefill IR"]
+    K["Save decode IR"]
+    L["Save KV mapping JSON"]
+
+    A --> B --> C
+    C --> D --> F --> H --> J
+    C --> E --> G --> I --> K
+    H --> L
+    I --> L
+```
 
 ## Extraction Script Architecture
 
@@ -75,15 +118,10 @@ Important details:
 import torch
 from kimi_k25_text_local import KimiK25TextForCausalLM
 
-
-def get_model_dtype(config) -> torch.dtype:
-    return getattr(config, "dtype", None) or torch.float32
-
-
 def build_model(config, *, device: str) -> KimiK25TextForCausalLM:
     with torch.device(device):
         model = KimiK25TextForCausalLM(config)
-    return model.to(dtype=get_model_dtype(config))
+    return model.to(dtype=config.dtype)
 ```
 
 This preserves shape and dtype metadata while avoiding real weight allocation.
@@ -120,7 +158,6 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
 
     past_kv_args = []
     head_dim = config.qk_nope_head_dim + config.qk_rope_head_dim
-    model_dtype = get_model_dtype(config)
     for _ in range(config.num_hidden_layers):
         past_kv_args.append(
             torch.randn(
@@ -129,7 +166,7 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
                 max_cache_len,
                 head_dim,
                 device="meta",
-                dtype=model_dtype,
+                dtype=config.dtype,
             )
         )
         past_kv_args.append(
@@ -139,7 +176,7 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
                 max_cache_len,
                 config.v_head_dim,
                 device="meta",
-                dtype=model_dtype,
+                dtype=config.dtype,
             )
         )
 
@@ -298,14 +335,6 @@ For large models, this split is often much easier to integrate than trying to fo
 - It does not document tiny verification mode here.
 
 This page is intentionally focused on the real huge-model extraction path.
-
-## Pitfalls
-
-- The model and example inputs must stay on the `meta` device during extraction.
-- Shapes must be fully static. Do not rely on dynamic cache lengths or symbolic sequence dimensions.
-- The wrapper signatures define the exported ABI. Changing wrapper inputs or output ordering changes the runtime contract.
-- Huge-model extraction time is dominated by export and graph conversion, not by weight loading.
-- Remote config compatibility does not automatically make upstream modeling code exportable. Config and model exportability are separate concerns.
 
 ## Summary
 

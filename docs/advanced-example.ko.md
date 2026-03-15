@@ -16,6 +16,25 @@
 
 실제로 초대형 모델 IR 추출의 핵심은 weight를 읽지 않는 것보다, forward 경로를 export-friendly 하게 만들고 `extract_ir()`에 안정적인 compiler/runtime용 callable ABI를 넘기는 데 있습니다.
 
+## 왜 Kimi-K2.5를 선택했는가
+
+Kimi-K2.5는 inference 인프라 관점에서 좋은 초대형 사례입니다. export를 어렵게 만드는 요소가 한 모델 안에 같이 들어 있기 때문입니다.
+
+- **총 1T 파라미터**, **32B 활성 파라미터**
+- **256K 컨텍스트 길이**
+- **61개 레이어**
+- **384개 routed experts**, token당 **8개 expert 선택**
+- text generation만 필요해도 top-level은 multimodal 구조
+
+그래서 다음 주제를 한 번에 보여주기에 적합합니다.
+
+- 큰 static cache 인터페이스
+- prefill/decode 그래프 분리
+- MoE export 제약
+- remote config와 local patched model의 조합
+
+이 문서에서 **text-only** IR만 다루는 이유는 그냥 편의상입니다. 목적은 multimodal 전체를 설명하는 것이 아니라, huge-model 추출 패턴을 설명하는 데 있습니다.
+
 ## 사례: Kimi-K2.5 Text-Only IR 추출
 
 이 예제는 세 가지 아이디어를 함께 사용합니다.
@@ -35,6 +54,30 @@
 
 - Hugging Face의 remote config
 - export-friendly 하게 패치된 로컬 text-only modeling code
+
+## 추출 흐름
+
+```mermaid
+flowchart TD
+    A["remote Kimi text config 로드<br/>AutoConfig(..., trust_remote_code=True)"]
+    B["config 정규화<br/>eager attention 강제"]
+    C["로컬 patched text-only 모델을<br/>meta device에서 생성"]
+    D["고정 shape prefill 입력 생성"]
+    E["평탄화된 KV tensor를 포함한<br/>고정 shape decode 입력 생성"]
+    F["prefill ABI wrapper<br/>logits + flattened KV outputs"]
+    G["decode ABI wrapper<br/>flattened KV inputs/outputs"]
+    H["extract_ir(prefill_wrapper, ...)"]
+    I["extract_ir(decode_wrapper, ...)"]
+    J["prefill IR 저장"]
+    K["decode IR 저장"]
+    L["KV mapping JSON 저장"]
+
+    A --> B --> C
+    C --> D --> F --> H --> J
+    C --> E --> G --> I --> K
+    H --> L
+    I --> L
+```
 
 ## 추출 스크립트 구조
 
@@ -75,15 +118,10 @@ def load_default_config():
 import torch
 from kimi_k25_text_local import KimiK25TextForCausalLM
 
-
-def get_model_dtype(config) -> torch.dtype:
-    return getattr(config, "dtype", None) or torch.float32
-
-
 def build_model(config, *, device: str) -> KimiK25TextForCausalLM:
     with torch.device(device):
         model = KimiK25TextForCausalLM(config)
-    return model.to(dtype=get_model_dtype(config))
+    return model.to(dtype=config.dtype)
 ```
 
 이렇게 하면 실제 weight를 만들지 않으면서도 shape 및 dtype 메타데이터는 유지할 수 있습니다.
@@ -120,7 +158,6 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
 
     past_kv_args = []
     head_dim = config.qk_nope_head_dim + config.qk_rope_head_dim
-    model_dtype = get_model_dtype(config)
     for _ in range(config.num_hidden_layers):
         past_kv_args.append(
             torch.randn(
@@ -129,7 +166,7 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
                 max_cache_len,
                 head_dim,
                 device="meta",
-                dtype=model_dtype,
+                dtype=config.dtype,
             )
         )
         past_kv_args.append(
@@ -139,7 +176,7 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
                 max_cache_len,
                 config.v_head_dim,
                 device="meta",
-                dtype=model_dtype,
+                dtype=config.dtype,
             )
         )
 
@@ -298,14 +335,6 @@ decode_ir = extract_ir(decode_wrapper, decode_inputs, model_name="KimiK25_Text_D
 - tiny verification mode는 이 문서에서 다루지 않습니다.
 
 이 페이지는 의도적으로 실제 huge-model 추출 경로에만 집중합니다.
-
-## 주의할 점
-
-- 추출 중에는 모델과 예제 입력이 모두 `meta` device에 있어야 합니다.
-- shape는 완전히 static 해야 합니다. 동적 cache 길이나 symbolic sequence dimension에 기대면 안 됩니다.
-- wrapper 시그니처가 export된 ABI를 정의합니다. wrapper 입력이나 출력 순서를 바꾸면 runtime 계약도 바뀝니다.
-- 초대형 모델 추출 시간은 weight 로딩보다 export와 graph conversion이 지배합니다.
-- remote config가 호환된다고 해서 upstream modeling code가 곧바로 export 가능한 것은 아닙니다. config 호환성과 modeling code exportability는 별개의 문제입니다.
 
 ## 요약
 
