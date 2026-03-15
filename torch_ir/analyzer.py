@@ -9,6 +9,8 @@ from torch.fx import Node
 
 from .ir import TensorMeta
 
+_SCHEMA_ARG_SPEC_CACHE: dict[int, list[tuple[str, bool, bool]]] = {}
+
 
 @dataclass
 class NodeInfo:
@@ -89,6 +91,33 @@ def _extract_node_output_meta(node: Node) -> List[TensorMeta]:
     return _extract_tensor_meta(val, node.name)
 
 
+def _get_schema_arg_specs(target: Any) -> list[tuple[str, bool, bool]]:
+    """Cache schema-derived argument metadata per operator target."""
+    cache_key = id(target)
+    cached = _SCHEMA_ARG_SPEC_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    if not hasattr(target, "_schema"):
+        cached = []
+        _SCHEMA_ARG_SPEC_CACHE[cache_key] = cached
+        return cached
+
+    specs = []
+    for schema_arg in target._schema.arguments:
+        arg_type_str = str(schema_arg.type)
+        is_tensor_list = (
+            "Tensor[]" in arg_type_str
+            or "Tensor?[]" in arg_type_str
+            or "List[Tensor]" in arg_type_str
+            or "List[Optional[Tensor]]" in arg_type_str
+        )
+        specs.append((schema_arg.name, is_tensor_list, "Tensor" in arg_type_str))
+
+    _SCHEMA_ARG_SPEC_CACHE[cache_key] = specs
+    return specs
+
+
 def _extract_op_attrs(node: Node) -> Dict[str, Any]:
     """Extract operation attributes from node args/kwargs using schema introspection."""
     import operator as _operator
@@ -107,22 +136,15 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
     if not hasattr(target, "_schema"):
         return attrs
 
-    schema = target._schema
+    schema_arg_specs = _get_schema_arg_specs(target)
 
     # Record sizes of Tensor[] and Tensor?[] args so executor can re-group flat tensor list
     tensor_list_sizes = []
     tensor_list_none_masks = []
-    for i, schema_arg in enumerate(schema.arguments):
+    for i, (_, is_tensor_list, _) in enumerate(schema_arg_specs):
         if i >= len(node.args):
             break
         value = node.args[i]
-        arg_type_str = str(schema_arg.type)
-        is_tensor_list = (
-            "Tensor[]" in arg_type_str
-            or "Tensor?[]" in arg_type_str
-            or "List[Tensor]" in arg_type_str
-            or "List[Optional[Tensor]]" in arg_type_str
-        )
         if is_tensor_list and isinstance(value, (list, tuple)):
             # Count only actual tensors (non-None entries)
             actual_tensor_count = sum(1 for v in value if v is not None)
@@ -137,7 +159,7 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
     if tensor_list_none_masks:
         attrs["_tensor_list_none_masks"] = tensor_list_none_masks
 
-    for i, schema_arg in enumerate(schema.arguments):
+    for i, (arg_name, _, is_tensor_arg) in enumerate(schema_arg_specs):
         if i >= len(node.args):
             break
         value = node.args[i]
@@ -145,9 +167,9 @@ def _extract_op_attrs(node: Node) -> Dict[str, Any]:
             continue
         if isinstance(value, (list, tuple)) and any(isinstance(v, Node) for v in value):
             continue
-        if value is None and "Tensor" in str(schema_arg.type):
+        if value is None and is_tensor_arg:
             continue
-        attrs[schema_arg.name] = value
+        attrs[arg_name] = value
 
     return attrs
 
@@ -161,15 +183,71 @@ class GraphAnalyzer:
         self.graph = exported.graph_module.graph
         self.graph_signature = exported.graph_signature
 
-        # Cache for node output metadata
-        self._node_outputs: Dict[str, List[TensorMeta]] = {}
-        self._build_node_output_cache()
+        self._params_dict = dict(self.graph_signature.inputs_to_parameters)
+        self._buffers_dict = dict(self.graph_signature.inputs_to_buffers)
+        self._constants_dict = (
+            dict(self.graph_signature.inputs_to_lifted_tensor_constants)
+            if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants")
+            else {}
+        )
+        self._weight_placeholders = frozenset(
+            (*self._params_dict.keys(), *self._buffers_dict.keys(), *self._constants_dict.keys())
+        )
+        self._user_inputs = set(self.graph_signature.user_inputs)
+        self._user_outputs = set(self.graph_signature.user_outputs)
 
-    def _build_node_output_cache(self) -> None:
-        """Build cache of node output metadata."""
+        self._node_outputs: Dict[str, List[TensorMeta]] = {}
+        self._graph_inputs: List[TensorMeta] = []
+        self._graph_outputs: List[TensorMeta] = []
+        self._weights: List[TensorMeta] = []
+        self._weight_name_mapping: Dict[str, str] = {}
+        self._call_function_nodes: List[NodeInfo] = []
+        self._build_caches()
+
+    def _build_caches(self) -> None:
+        """Build cached metadata from a single graph traversal."""
         for node in self.graph.nodes:
             metas = _extract_node_output_meta(node)
             self._node_outputs[node.name] = metas
+
+            if node.op == "placeholder":
+                if node.name in self._user_inputs:
+                    self._graph_inputs.extend(metas)
+
+                name = (
+                    self._params_dict.get(node.name)
+                    or self._buffers_dict.get(node.name)
+                    or self._constants_dict.get(node.name)
+                )
+                if name:
+                    self._weight_name_mapping[node.name] = name
+                    for meta in metas:
+                        self._weights.append(
+                            TensorMeta(
+                                name=name,
+                                shape=meta.shape,
+                                dtype=meta.dtype,
+                            )
+                        )
+                continue
+
+            if node.op == "call_function":
+                self._call_function_nodes.append(
+                    NodeInfo(
+                        name=node.name,
+                        target=node.target,
+                        input_metas=self.get_node_input_meta(node),
+                        output_metas=metas,
+                        attrs=_extract_op_attrs(node),
+                    )
+                )
+                continue
+
+            if node.op == "output":
+                output_args = node.args[0] if isinstance(node.args[0], (list, tuple)) else [node.args[0]]
+                for arg in output_args:
+                    if isinstance(arg, Node) and arg.name in self._user_outputs:
+                        self._graph_outputs.extend(self._node_outputs.get(arg.name, []))
 
     def get_node_output_meta(self, node_name: str) -> List[TensorMeta]:
         """Get output metadata for a node by name."""
@@ -183,20 +261,11 @@ class GraphAnalyzer:
         instead of name-based lookup.  Weight/buffer placeholders are left with
         producer_node=None so the executor falls back to registry lookup.
         """
-        # Weight/buffer placeholders should NOT get producer tracking —
-        # they are external inputs resolved from the registry, not computed
-        # by a graph node.
-        weight_placeholders = set()
-        weight_placeholders.update(dict(self.graph_signature.inputs_to_parameters).keys())
-        weight_placeholders.update(dict(self.graph_signature.inputs_to_buffers).keys())
-        if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants"):
-            weight_placeholders.update(dict(self.graph_signature.inputs_to_lifted_tensor_constants).keys())
-
         input_metas = []
         for arg in node.args:
             if isinstance(arg, Node):
                 metas = self._node_outputs.get(arg.name, [])
-                is_weight = arg.name in weight_placeholders
+                is_weight = arg.name in self._weight_placeholders
                 for output_idx, meta in enumerate(metas):
                     input_metas.append(
                         TensorMeta(
@@ -211,7 +280,7 @@ class GraphAnalyzer:
                 for a in arg:
                     if isinstance(a, Node):
                         metas = self._node_outputs.get(a.name, [])
-                        is_weight = a.name in weight_placeholders
+                        is_weight = a.name in self._weight_placeholders
                         for output_idx, meta in enumerate(metas):
                             input_metas.append(
                                 TensorMeta(
@@ -226,63 +295,15 @@ class GraphAnalyzer:
 
     def get_graph_inputs(self) -> List[TensorMeta]:
         """Extract graph input tensor metadata."""
-        inputs = []
-        user_inputs = self.graph_signature.user_inputs
-
-        for node in self.graph.nodes:
-            if node.op == "placeholder" and node.name in user_inputs:
-                metas = self._node_outputs.get(node.name, [])
-                inputs.extend(metas)
-
-        return inputs
+        return list(self._graph_inputs)
 
     def get_graph_outputs(self) -> List[TensorMeta]:
         """Extract graph output tensor metadata."""
-        outputs = []
-        user_outputs = self.graph_signature.user_outputs
-
-        for node in self.graph.nodes:
-            if node.op == "output":
-                # Output node's args contain the actual output nodes
-                for arg in node.args[0] if isinstance(node.args[0], (list, tuple)) else [node.args[0]]:
-                    if isinstance(arg, Node) and arg.name in user_outputs:
-                        metas = self._node_outputs.get(arg.name, [])
-                        outputs.extend(metas)
-
-        return outputs
+        return list(self._graph_outputs)
 
     def get_weights(self) -> List[TensorMeta]:
         """Extract weight tensor metadata from graph signature."""
-        weights = []
-
-        # Get parameter names from signature
-        params_dict = dict(self.graph_signature.inputs_to_parameters)
-        buffers_dict = dict(self.graph_signature.inputs_to_buffers)
-        constants_dict = (
-            dict(self.graph_signature.inputs_to_lifted_tensor_constants)
-            if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants")
-            else {}
-        )
-
-        for node in self.graph.nodes:
-            if node.op == "placeholder":
-                param_name = params_dict.get(node.name)
-                buffer_name = buffers_dict.get(node.name)
-                constant_name = constants_dict.get(node.name)
-
-                name = param_name or buffer_name or constant_name
-                if name:
-                    metas = self._node_outputs.get(node.name, [])
-                    for meta in metas:
-                        weights.append(
-                            TensorMeta(
-                                name=name,
-                                shape=meta.shape,
-                                dtype=meta.dtype,
-                            )
-                        )
-
-        return weights
+        return list(self._weights)
 
     def get_weight_name_mapping(self) -> Dict[str, str]:
         """Get mapping from placeholder names to state_dict keys.
@@ -292,51 +313,8 @@ class GraphAnalyzer:
             state_dict keys (e.g., 'linear.weight').
             Also includes lifted tensor constants.
         """
-        mapping = {}
-
-        params_dict = dict(self.graph_signature.inputs_to_parameters)
-        buffers_dict = dict(self.graph_signature.inputs_to_buffers)
-        constants_dict = (
-            dict(self.graph_signature.inputs_to_lifted_tensor_constants)
-            if hasattr(self.graph_signature, "inputs_to_lifted_tensor_constants")
-            else {}
-        )
-
-        for node in self.graph.nodes:
-            if node.op == "placeholder":
-                param_name = params_dict.get(node.name)
-                buffer_name = buffers_dict.get(node.name)
-                constant_name = constants_dict.get(node.name)
-
-                if param_name:
-                    mapping[node.name] = param_name
-                elif buffer_name:
-                    mapping[node.name] = buffer_name
-                elif constant_name:
-                    mapping[node.name] = constant_name
-
-        return mapping
+        return dict(self._weight_name_mapping)
 
     def get_call_function_nodes(self) -> List[NodeInfo]:
         """Extract all call_function nodes (actual operations)."""
-        nodes = []
-
-        for node in self.graph.nodes:
-            if node.op == "call_function":
-                target = node.target
-
-                input_metas = self.get_node_input_meta(node)
-                output_metas = self._node_outputs.get(node.name, [])
-                attrs = _extract_op_attrs(node)
-
-                nodes.append(
-                    NodeInfo(
-                        name=node.name,
-                        target=target,
-                        input_metas=input_metas,
-                        output_metas=output_metas,
-                        attrs=attrs,
-                    )
-                )
-
-        return nodes
+        return list(self._call_function_nodes)
