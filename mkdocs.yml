@@ -46,6 +46,7 @@ plugins:
             Operator Support: 연산자 지원
             Extension Guide: 확장 가이드
             Example: 예제
+            Advanced Example: 고급 예제
             Lifted Tensor Constants: Lifted Tensor Constants
             CLI Reference: CLI 레퍼런스
             API Reference: API 레퍼런스
@@ -90,6 +91,7 @@ nav:
       - Operator Support: operators.md
       - Extension Guide: extending.md
       - Example: example.md
+      - Advanced Example: advanced-example.md
       - Lifted Tensor Constants: lifted-tensor.md
       - CLI Reference: cli.md
   - API Reference:
