@@ -1,6 +1,6 @@
 # Torch IR Extraction Framework
 
-A framework for extracting IR (Intermediate Representation) from PyTorch models for downstream compiler backends.
+A library for extracting IR (Intermediate Representation) from PyTorch models.
 
 ## Key Features
 
@@ -73,27 +73,10 @@ print(report)
 ## Documentation
 
 - [Concepts and Architecture](concepts.md) - Core concepts and design of the framework
-- [Setup](setup.md) - Installation and development environment configuration
 - [Usage Guide](usage.md) - Detailed usage and examples
+- [Example](example.md) - Simple extraction and visualization example
+- [Advanced Example](advanced-example.md) - Huge-model extraction workflow
 - [API Reference](api/index.md) - Public API documentation
 - [Operator Support](operators.md) - List of supported ATen operators
 - [Extension Guide](extending.md) - How to add custom operators
 - [CLI Reference](cli.md) - Command-line tools for IR inspection and visualization
-
-## Dependencies
-
-- Python >= 3.10
-- PyTorch >= 2.1
-
-## Running Tests
-
-```bash
-# Basic tests
-uv run pytest tests/ -v
-
-# Comprehensive tests (all test models)
-uv run pytest tests/test_comprehensive.py -v
-
-# Generate reports
-uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
-```

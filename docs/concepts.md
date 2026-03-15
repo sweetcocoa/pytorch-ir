@@ -1,12 +1,12 @@
 # Concepts and Architecture
 
-This document explains the core concepts and design philosophy of the IR extraction framework.
+This document explains the core concepts behind extracting IR from PyTorch models with `pytorch-ir`.
 
 ## 1. Overview
 
 ### 1.1 Purpose
 
-The IR extraction framework extracts intermediate representation (IR) from PyTorch models that can be consumed by downstream compiler backends. The key objectives are:
+`pytorch-ir` extracts intermediate representation (IR) from PyTorch models. The key objectives are:
 
 - **Weight-free extraction**: Extract only graph structure and shape/dtype metadata without actual weight values
 - **Standardized representation**: Consistent IR decomposed into low-level ATen operations
@@ -18,7 +18,7 @@ For large-scale models (LLMs, etc.), weights can reach tens to hundreds of GB. S
 
 - Significant reduction in memory usage
 - Faster IR extraction
-- Increased flexibility in compilation pipeline
+- A practical extraction path for very large models
 
 ## 2. Core Concepts
 
@@ -133,7 +133,7 @@ flowchart TD
 | Analyzer | `analyzer.py` | FX graph analysis, metadata extraction, schema-based attribute extraction |
 | Converter | `converter.py` | FX node → OpNode conversion (default converter handles all ops) |
 | Serializer | `serializer.py` | JSON serialization/deserialization |
-| Executor | `executor.py` | IR graph execution — ATen fallback automatically executes all ATen ops |
+| Executor | `executor.py` | IR graph execution for verification and inspection |
 | Weight Loader | `weight_loader.py` | Load .pt, .safetensors files |
 | Verifier | `verifier.py` | Original vs IR output comparison |
 | Registry | `ops/registry.py` | Custom operator registration mechanism |
@@ -148,7 +148,7 @@ torch.export decomposes to the ATen level by default. This provides the followin
 
 - **Consistency**: Various high-level APIs are converted to the same low-level operations
 - **Completeness**: All operations are explicitly represented
-- **Compiler-friendly**: Good level for compiler optimization
+- **Low-level consistency**: A stable, explicit representation of model computation
 
 Example:
 ```python

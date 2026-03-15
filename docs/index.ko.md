@@ -1,6 +1,6 @@
 # NPU IR Extraction Framework
 
-PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
+PyTorch 모델에서 IR(Intermediate Representation)을 추출하는 라이브러리입니다.
 
 ## 주요 특징
 
@@ -73,27 +73,10 @@ print(report)
 ## 문서
 
 - [개념 및 아키텍처](concepts.md) - 프레임워크의 핵심 개념과 설계
-- [환경 설정](setup.md) - 설치 및 개발 환경 구성
 - [사용 가이드](usage.md) - 상세 사용법과 예제
+- [예제](example.md) - 간단한 IR 추출 및 시각화 예제
+- [고급 예제](advanced-example.md) - huge-model 추출 흐름
 - [API 레퍼런스](api/index.md) - 공개 API 문서
 - [연산자 지원](operators.md) - 지원되는 ATen 연산자 목록
 - [확장 가이드](extending.md) - 커스텀 연산자 추가 방법
 - [CLI 레퍼런스](cli.ko.md) - IR 조회 및 시각화 커맨드라인 도구
-
-## 의존성
-
-- Python >= 3.10
-- PyTorch >= 2.1
-
-## 테스트 실행
-
-```bash
-# 기본 테스트
-uv run pytest tests/ -v
-
-# 종합 테스트 (모든 테스트 모델)
-uv run pytest tests/test_comprehensive.py -v
-
-# 리포트 생성
-uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
-```

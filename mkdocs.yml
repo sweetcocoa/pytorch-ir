@@ -41,7 +41,6 @@ plugins:
             Home: Home
             Guide: 가이드
             Concepts & Architecture: 개념 및 아키텍처
-            Setup: 환경 설정
             Usage Guide: 사용 가이드
             Operator Support: 연산자 지원
             Extension Guide: 확장 가이드
@@ -86,7 +85,6 @@ nav:
   - Home: index.md
   - Guide:
       - Concepts & Architecture: concepts.md
-      - Setup: setup.md
       - Usage Guide: usage.md
       - Operator Support: operators.md
       - Extension Guide: extending.md

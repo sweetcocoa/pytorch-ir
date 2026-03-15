@@ -1,6 +1,6 @@
 # Usage Guide
 
-This document explains the detailed usage of the IR extraction framework.
+This document explains the main workflows for extracting, inspecting, saving, and validating IR.
 
 ## 1. Basic Workflow
 
@@ -473,102 +473,11 @@ configs = {
 irs = extract_multiple_models(configs)
 ```
 
-## 9. Comprehensive Test System
-
-### 9.1 Test Models
-
-The framework provides test models covering various computation graph patterns:
-
-| Category | Model | Description |
-|---------|------|------|
-| multi_io | SiameseEncoder | Apply same encoder to two images |
-| multi_io | MultiTaskHead | Shared backbone + multi-output heads |
-| skip_connections | DeepResNet | Multiple residual blocks |
-| skip_connections | DenseBlock | DenseNet-style connections |
-| shared_weights | RecurrentUnroll | Repeated application of same cell |
-| shared_weights | WeightTying | Embedding-output weight sharing |
-| attention | SelfAttention | Basic self-attention |
-| attention | CrossAttention | Cross-attention |
-| attention | TransformerBlock | Complete transformer block |
-
-### 9.2 Running pytest
-
-```bash
-# Basic run
-pytest tests/test_comprehensive.py -v
-
-# Generate reports
-pytest tests/test_comprehensive.py --generate-reports --output reports/
-
-# Category filter
-pytest tests/test_comprehensive.py -k "attention" --generate-reports
-```
-
-### 9.3 Running CLI
-
-```bash
-# Full test
-python -m tests --output reports/
-
-# Category filter
-python -m tests --category attention
-
-# Single model
-python -m tests --model SelfAttention
-
-# List models
-python -m tests --list-models
-
-# List categories
-python -m tests --list-categories
-```
-
-### 9.4 Report Structure
-
-Test reports are generated in markdown format:
-
-```
-reports/
-├── SUMMARY.md           # Overall summary
-├── SelfAttention.md     # Individual model report
-├── TransformerBlock.md
-└── ...
-```
-
-Each model report includes the following information:
-
-- **Summary table**: nodes, edges, inputs, outputs, weights, total params
-- **Numerical Verification**: max_diff, mean_diff
-- **DAG Visualization**: Mermaid flowchart
-- **Operator Distribution**: Mermaid pie chart
-- **Node Details**: Collapsible table
-- **Weight Metadata**: Table
-
-### 9.5 Adding Custom Test Models
-
-```python
-from tests.models.base import register_model
-
-@register_model(
-    name="MyCustomModel",
-    input_shapes=[(3, 32, 32)],
-    categories=["custom"],
-    description="My custom test model"
-)
-class MyCustomModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv = nn.Conv2d(3, 64, 3)
-
-    def forward(self, x):
-        return self.conv(x)
-```
-
-## 10. CLI Tools
+## 9. CLI Tools
 
 The `pytorch-ir` CLI allows you to inspect and visualize IR files directly from the terminal without writing Python code.
 
-### 10.1 IR Summary
+### 9.1 IR Summary
 
 ```bash
 # Display IR summary
@@ -607,7 +516,7 @@ Op distribution:
   aten.linear.default: 1
 ```
 
-### 10.2 Graph Visualization
+### 9.2 Graph Visualization
 
 ```bash
 # Print Mermaid diagram to stdout
@@ -722,7 +631,7 @@ flowchart TD
 
 For full CLI documentation, see the [CLI Reference](cli.md).
 
-## 11. Next Steps
+## 10. Next Steps
 
 - [API Reference](api/index.md) - Detailed API documentation
 - [Operator Support](operators.md) - List of supported operators

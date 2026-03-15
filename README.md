@@ -8,7 +8,7 @@
 [![Docs](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/docs.yml?label=docs)](https://sweetcocoa.github.io/pytorch-ir/)
 [![Publish](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/publish.yml?label=publish)](https://github.com/sweetcocoa/pytorch-ir/actions/workflows/publish.yml)
 
-A framework for extracting compiler-backend IR (Intermediate Representation) from PyTorch models.
+A library for extracting IR (Intermediate Representation) from PyTorch models.
 
 ## Quick Start
 
@@ -137,44 +137,19 @@ print(f"Verification: {'PASSED' if is_valid else 'FAILED'}")
 ## Documentation
 
 - [Concepts & Architecture](docs/concepts.md) - Core concepts and design of the framework
-- [Setup](docs/setup.md) - Installation and development environment configuration
 - [Usage Guide](docs/usage.md) - Detailed usage and examples
+- [Example](docs/example.md) - Simple extraction and visualization example
+- [Advanced Example](docs/advanced-example.md) - Huge-model extraction workflow
 - [API Reference](docs/api/index.md) - Public API documentation
 - [Operator Support](docs/operators.md) - Supported ATen operators
 - [Extension Guide](docs/extending.md) - How to add custom operators
-
-## Dependencies
-
-- Python >= 3.10
-- PyTorch >= 2.1
-
-## Running Tests
-
-```bash
-# Basic tests
-uv run pytest tests/ -v
-
-# Comprehensive tests (all test models)
-uv run pytest tests/test_comprehensive.py -v
-
-# Generate reports
-uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
-
-# Filter by category
-uv run pytest tests/test_comprehensive.py -k "attention" -v
-
-# Run via CLI
-uv run python -m tests --output reports/
-uv run python -m tests --list-models
-uv run python -m tests --category attention
-```
 
 ## Features
 
 - **Weight-free extraction**: Uses meta tensors to extract only graph structure without loading actual weights into memory
 - **torch.export based**: Uses TorchDynamo-based tracing, the officially recommended PyTorch approach
 - **Complete metadata**: Automatically extracts shape and dtype information for all tensors
-- **IR execution & verification**: Execute the extracted IR and verify results match the original model
+- **IR verification**: Compare extracted IR results against the original model when weights are available
 - **Extensible design**: Provides a custom operator registration mechanism
 
 ## License

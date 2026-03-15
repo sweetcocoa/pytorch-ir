@@ -8,7 +8,7 @@
 [![Docs](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/docs.yml?label=docs)](https://sweetcocoa.github.io/pytorch-ir/)
 [![Publish](https://img.shields.io/github/actions/workflow/status/sweetcocoa/pytorch-ir/publish.yml?label=publish)](https://github.com/sweetcocoa/pytorch-ir/actions/workflows/publish.yml)
 
-PyTorch 모델에서 컴파일러 백엔드용 IR(Intermediate Representation)을 추출하는 프레임워크입니다.
+PyTorch 모델에서 IR(Intermediate Representation)을 추출하는 라이브러리입니다.
 
 ## 빠른 시작
 
@@ -137,44 +137,19 @@ print(f"Verification: {'PASSED' if is_valid else 'FAILED'}")
 ## 문서
 
 - [개념 및 아키텍처](docs/concepts.md) - 프레임워크의 핵심 개념과 설계
-- [환경 설정](docs/setup.md) - 설치 및 개발 환경 구성
 - [사용 가이드](docs/usage.md) - 상세 사용법과 예제
+- [예제](docs/example.md) - 간단한 IR 추출 및 시각화 예제
+- [고급 예제](docs/advanced-example.md) - huge-model 추출 흐름
 - [API 레퍼런스](docs/api/index.md) - 공개 API 문서
 - [연산자 지원](docs/operators.md) - 지원되는 ATen 연산자 목록
 - [확장 가이드](docs/extending.md) - 커스텀 연산자 추가 방법
-
-## 의존성
-
-- Python >= 3.10
-- PyTorch >= 2.1
-
-## 테스트 실행
-
-```bash
-# 기본 테스트
-uv run pytest tests/ -v
-
-# 종합 테스트 (모든 테스트 모델)
-uv run pytest tests/test_comprehensive.py -v
-
-# 리포트 생성
-uv run pytest tests/test_comprehensive.py --generate-reports --output reports/
-
-# 카테고리별 필터
-uv run pytest tests/test_comprehensive.py -k "attention" -v
-
-# CLI로 실행
-uv run python -m tests --output reports/
-uv run python -m tests --list-models
-uv run python -m tests --category attention
-```
 
 ## 주요 특징
 
 - **Weight-free 추출**: Meta tensor를 활용하여 실제 weight를 메모리에 로드하지 않고 그래프 구조만 추출
 - **torch.export 기반**: PyTorch 공식 권장 방식인 TorchDynamo 기반 tracing 사용
 - **완전한 메타데이터**: 모든 텐서의 shape, dtype 정보 자동 추출
-- **IR 실행 및 검증**: 추출된 IR을 실행하여 원본 모델과 동일한 결과 검증 가능
+- **IR 검증**: weight가 있을 때 추출된 IR 결과를 원본 모델과 비교 가능
 - **확장 가능한 설계**: 커스텀 연산자 등록 메커니즘 제공
 
 ## 라이선스
