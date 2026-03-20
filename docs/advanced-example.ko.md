@@ -83,13 +83,31 @@ flowchart TD
 
 이 스크립트는 downstream runtime이 실제로 필요로 하는 ABI를 기준으로 구성됩니다.
 
-### 1. remote text config 로드
+정식 소스는 `examples/extract_kimi_k25_text_ir.py`에 있고, `examples/kimi_k25_text_local`에 의존합니다. 저장소 루트에서 바로 실행할 수 있습니다.
+
+```bash
+uv run --with transformers python examples/extract_kimi_k25_text_ir.py --output-dir ./out/kimi
+```
+
+아래 블록은 그와 동일한 실행 가능한 스크립트입니다.
 
 ```python
-from copy import deepcopy
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import torch
+import torch.nn as nn
+from torch_ir import extract_ir
 from transformers import AutoConfig
 
+from kimi_k25_text_local import KimiK25TextForCausalLM
+
 MODEL_ID = "moonshotai/Kimi-K2.5"
+PREFILL_SEQ_LEN = 128
+MAX_CACHE_LEN = 2048
+OUTPUT_DIR = Path(".")
 
 
 def prepare_text_config(config):
@@ -104,31 +122,103 @@ def prepare_text_config(config):
 def load_default_config():
     remote_config = AutoConfig.from_pretrained(MODEL_ID, trust_remote_code=True)
     return prepare_text_config(remote_config.text_config)
-```
 
-중요한 점은 다음과 같습니다.
-
-- 예제는 remote config 객체를 그대로 사용합니다.
-- export된 그래프를 예측 가능하게 유지하기 위해 eager attention을 강제합니다.
-- 모델 생성 전에 config 정규화를 먼저 수행합니다.
-
-### 2. 모델을 `meta` 에서 생성
-
-```python
-import torch
-from kimi_k25_text_local import KimiK25TextForCausalLM
 
 def build_model(config, *, device: str) -> KimiK25TextForCausalLM:
     with torch.device(device):
         model = KimiK25TextForCausalLM(config)
     return model.to(dtype=config.dtype)
-```
 
-이렇게 하면 실제 weight를 만들지 않으면서도 shape 및 dtype 메타데이터는 유지할 수 있습니다.
 
-### 3. 고정 shape prefill 입력 만들기
+def make_additive_causal_mask(
+    *,
+    query_positions: torch.Tensor,
+    key_length: int,
+    device: torch.device,
+) -> torch.Tensor:
+    key_positions = torch.arange(key_length, device=device)
+    allowed = key_positions.unsqueeze(0) <= query_positions.reshape(-1, 1)
+    min_value = torch.tensor(torch.finfo(torch.float32).min, device=device)
+    mask = torch.where(allowed, torch.zeros((), device=device), min_value)
+    return mask.unsqueeze(0).unsqueeze(0)
 
-```python
+
+class KimiPrefillWrapper(nn.Module):
+    def __init__(self, model: KimiK25TextForCausalLM):
+        super().__init__()
+        self.model = model
+
+    def forward(self, input_ids, attention_mask, position_ids):
+        outputs = self.model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            use_cache=True,
+        )
+        result = [outputs.logits]
+        for layer_kv in outputs.past_key_values:
+            result.append(layer_kv[0])
+            result.append(layer_kv[1])
+        return tuple(result)
+
+
+class _IndexCopyCache:
+    def __init__(self, kv_flat, num_layers: int, seen_tokens: int, max_cache_len: int):
+        self.key_cache = [kv_flat[2 * i] for i in range(num_layers)]
+        self.value_cache = [kv_flat[2 * i + 1] for i in range(num_layers)]
+        self._seen_tokens = seen_tokens
+        self._max_cache_len = max_cache_len
+
+    def update(self, key_states, value_states, layer_idx, cache_kwargs=None):
+        cache_position = cache_kwargs["cache_position"]
+        self.key_cache[layer_idx] = self.key_cache[layer_idx].index_copy(2, cache_position, key_states)
+        self.value_cache[layer_idx] = self.value_cache[layer_idx].index_copy(2, cache_position, value_states)
+        return self.key_cache[layer_idx], self.value_cache[layer_idx]
+
+    def get_seq_length(self, layer_idx=0):
+        del layer_idx
+        return self._seen_tokens
+
+    def get_max_cache_shape(self, layer_idx=0):
+        del layer_idx
+        return self._max_cache_len
+
+    def __getitem__(self, idx):
+        return self.key_cache[idx], self.value_cache[idx]
+
+    def __iter__(self):
+        for idx in range(len(self.key_cache)):
+            yield self.key_cache[idx], self.value_cache[idx]
+
+    def __len__(self):
+        return len(self.key_cache)
+
+
+class KimiDecodeWrapper(nn.Module):
+    def __init__(self, model: KimiK25TextForCausalLM, num_layers: int, seen_tokens: int, max_cache_len: int):
+        super().__init__()
+        self.model = model
+        self.num_layers = num_layers
+        self.seen_tokens = seen_tokens
+        self.max_cache_len = max_cache_len
+
+    def forward(self, input_ids, attention_mask, position_ids, cache_position, *past_kv_flat):
+        cache = _IndexCopyCache(past_kv_flat, self.num_layers, self.seen_tokens, self.max_cache_len)
+        outputs = self.model(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            position_ids=position_ids,
+            past_key_values=cache,
+            cache_position=cache_position,
+            use_cache=True,
+        )
+        result = [outputs.logits]
+        for idx in range(self.num_layers):
+            result.append(cache.key_cache[idx])
+            result.append(cache.value_cache[idx])
+        return tuple(result)
+
+
 def build_prefill_meta_inputs(config, prefill_seq_len: int):
     positions = torch.arange(prefill_seq_len, device="meta").unsqueeze(0)
     attention_mask = make_additive_causal_mask(
@@ -141,13 +231,8 @@ def build_prefill_meta_inputs(config, prefill_seq_len: int):
         attention_mask,
         positions,
     )
-```
 
-Prefill은 고정된 `(batch=1, seq_len=prefill_seq_len)` 인터페이스로 export됩니다.
 
-### 4. 고정 shape decode 입력 만들기
-
-```python
 def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
     positions = torch.tensor([[prefill_seq_len]], device="meta")
     attention_mask = make_additive_causal_mask(
@@ -155,19 +240,11 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
         key_length=max_cache_len,
         device=torch.device("meta"),
     )
-
     past_kv_args = []
     head_dim = config.qk_nope_head_dim + config.qk_rope_head_dim
     for _ in range(config.num_hidden_layers):
         past_kv_args.append(
-            torch.randn(
-                1,
-                config.num_attention_heads,
-                max_cache_len,
-                head_dim,
-                device="meta",
-                dtype=config.dtype,
-            )
+            torch.randn(1, config.num_attention_heads, max_cache_len, head_dim, device="meta", dtype=config.dtype)
         )
         past_kv_args.append(
             torch.randn(
@@ -179,7 +256,6 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
                 dtype=config.dtype,
             )
         )
-
     return (
         torch.randint(0, config.vocab_size, (1, 1), device="meta"),
         attention_mask,
@@ -187,9 +263,66 @@ def build_decode_meta_inputs(config, prefill_seq_len: int, max_cache_len: int):
         torch.tensor([prefill_seq_len], device="meta"),
         *past_kv_args,
     )
+
+
+def save_kv_mapping(prefill_ir, decode_ir, num_layers: int, output_path: Path):
+    prefill_kv = prefill_ir.graph_outputs[1:]
+    fixed_inputs = {"input_ids", "attention_mask", "position_ids", "cache_position"}
+    decode_kv_in = [meta for meta in decode_ir.graph_inputs if meta.name not in fixed_inputs]
+    decode_kv_out = decode_ir.graph_outputs[1:]
+
+    layers = []
+    for idx in range(num_layers):
+        layers.append(
+            {
+                "layer": idx,
+                "prefill_key_output": prefill_kv[2 * idx].name,
+                "prefill_value_output": prefill_kv[2 * idx + 1].name,
+                "decode_key_input": decode_kv_in[2 * idx].name,
+                "decode_value_input": decode_kv_in[2 * idx + 1].name,
+                "decode_key_output": decode_kv_out[2 * idx].name,
+                "decode_value_output": decode_kv_out[2 * idx + 1].name,
+            }
+        )
+
+    with output_path.open("w") as f:
+        json.dump({"num_layers": num_layers, "layers": layers}, f, indent=2)
+
+
+def main():
+    config = load_default_config()
+    model = build_model(config, device="meta")
+    model.eval()
+
+    prefill_wrapper = KimiPrefillWrapper(model)
+    prefill_inputs = build_prefill_meta_inputs(config, PREFILL_SEQ_LEN)
+    prefill_ir = extract_ir(prefill_wrapper, prefill_inputs, model_name="KimiK25_Text_Prefill")
+
+    decode_wrapper = KimiDecodeWrapper(model, config.num_hidden_layers, PREFILL_SEQ_LEN, MAX_CACHE_LEN)
+    decode_inputs = build_decode_meta_inputs(config, PREFILL_SEQ_LEN, MAX_CACHE_LEN)
+    decode_ir = extract_ir(decode_wrapper, decode_inputs, model_name="KimiK25_Text_Decode")
+
+    prefill_ir.save(OUTPUT_DIR / "kimi_k25_text_prefill_ir.json")
+    decode_ir.save(OUTPUT_DIR / "kimi_k25_text_decode_ir.json")
+    save_kv_mapping(
+        prefill_ir,
+        decode_ir,
+        config.num_hidden_layers,
+        OUTPUT_DIR / "kimi_k25_text_kv_mapping.json",
+    )
+
+
+if __name__ == "__main__":
+    main()
 ```
 
-Decode는 고정된 `(batch=1, seq_len=1, kv_len=max_cache_len)` 인터페이스로 export됩니다.
+중요한 점은 다음과 같습니다.
+
+- 예제는 remote config 객체를 그대로 사용합니다.
+- export된 그래프를 예측 가능하게 유지하기 위해 eager attention을 강제합니다.
+- 모델 생성 전에 config 정규화를 먼저 수행합니다.
+- prefill은 고정된 `(batch=1, seq_len=PREFILL_SEQ_LEN)` 인터페이스를 사용합니다.
+- decode는 고정된 `(batch=1, seq_len=1, kv_len=MAX_CACHE_LEN)` 인터페이스를 사용합니다.
 
 ## 왜 wrapper가 필요한가
 
